@@ -5,7 +5,7 @@
 The user has several AI subscriptions: two Claude accounts (account 1 and account 2), ChatGPT/Codex
 (account 3) and Gemini (account 4). Each subscription has a 5h window and a 7d window, with its own % used and reset time.
 The user wants one floating widget on Hyprland (Linux) and Windows 11. The widget shows
-when each window resets and how much of it is used. The user can configure the widget.
+when each window resets and how much of it the user has used. The user can configure the widget.
 
 The approved mockup is at https://claude.ai/artifact/GV4AetCYbFgVsAzGFz6KH2. Its artboards are
 Main (prototype), Bubble, Card, States and Settings. The mockup is the visual spec. The
@@ -17,15 +17,15 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
 - **Shape:** a flat-top hexagon only, with one concentric hex ring per account, outermost first. Chrysaki bans rounded corners. The user dropped the circle option.
 - **Mouse:** left-drag moves the widget. A left-click expands the bubble in place into the card, and a click on the card's header hex collapses it.
   A right-click shows the next account in the centre (one step, wraps, never auto). A middle-click returns the centre to auto (earliest 5h reset).
-- **Centre:** three lines. The mode (`next 5h` / `5h reset` / `stale 3h`), the countdown, and `<short> · <pct>%`. When an account is pinned, the other rings dim.
+- **Centre:** three lines. The mode (`next 5h` / `5h reset` / `stale 3h`), the countdown, and `<short> · <pct>%`. When the user pins an account, the other rings dim.
 - **Colour thresholds:** emerald `#1a8a6a` under 50%, blonde `#FBB13C` from 50%, ruby `#e06a78` from 75%. All three thresholds can be configured.
 - **Each machine fetches its own data.** Windows has its own logins. The design has no network sync.
 - **The widget never refreshes an OAuth token.** A Claude refresh token works only once. A refresh by the widget logs out the running Claude Code sessions.
 - **Data sources, in order of trust:**
   - Claude: the statusline cache file is the primary source and is official. The fallback is a read-only call to `GET https://api.anthropic.com/api/oauth/usage`
-    (`anthropic-beta: oauth-2025-04-20`), at most every 5 min, and only when the cache is older than 15 min. The parser handles both the flat
+    (`anthropic-beta: oauth-2025-04-20`). The widget makes it at most every 5 minutes, and only when the cache is older than 15 minutes. The parser handles both the flat
     `five_hour`/`seven_day` shape and the newer `limits[]` shape. An expired token shows "stale" and the widget waits.
-  - Codex: the newest `token_count` event in `~/.codex/sessions/**/*.jsonl`. Windows are mapped by `window_minutes` (300 = 5h, 10080 = 7d), not by name.
+  - Codex: the newest `token_count` event in `~/.codex/sessions/**/*.jsonl`. The parser maps windows by `window_minutes` (300 = 5h, 10080 = 7d), not by name.
     `codex app-server` (`account/rateLimits/read`) is a later option.
   - Gemini: `retrieveUserQuota` is best effort. Google reportedly cut that access for consumer plans in 2026-06, so "stale" is the expected state.
 - **Theme:** Chrysaki tokens, Inter and Fira Code, glass bubble, chamfered card, no border-radius.
@@ -74,7 +74,7 @@ Window flags: `decorations: false`, `transparent: true`, `alwaysOnTop: true`, `s
 1. `~/dev/obKidian/000-System/Agents/Claude/statusline/statusline-command.sh` (the `~/.claude/statusline` symlink target):
    after the relay block, and **before** the `CHRYSAKI_STATUSLINE_MOD` early `exit 0` at about line 24, write
    `{account, five_hour, seven_day, written_at}` to `${XDG_CACHE_HOME:-$HOME/.cache}/usaki/claude-<acct>.json` through a temp file and `mv`.
-   The account comes from the same rule as lines 140–148: `CLAUDE_CONFIG_DIR`, else `.workspace.current_dir` matching the account 2 work directory.
+   The account comes from the same rule as lines 140 to 148: `CLAUDE_CONFIG_DIR`, else `.workspace.current_dir` matching the account 2 work directory.
    This block must stay above the early exit, because the mod path exits there.
 2. `~/dots/hypr/.config/hypr/hyprland.conf`: add windowrules for `title:^usaki$`: float, pin, no border, no shadow, no rounding, no focus on map.
 
