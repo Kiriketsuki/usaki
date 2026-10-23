@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>usaki</title>
+  <style>
+    /* The page must stay fully transparent outside the hex. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    svg { display: block; }
+  </style>
+</head>
+<body>
+  <!-- 152x188: 36 px of headroom for the ears, then a 152x152 flat-top hex. -->
+  <svg id="bubble" width="152" height="188" viewBox="0 0 152 188" xmlns="http://www.w3.org/2000/svg">
+    <polygon id="hex" fill="#1a8a6a" stroke="#FBB13C" stroke-width="4"
+      points="" />
+  </svg>
+  <script>
+    // Flat-top hexagon: the vertices sit at 0, 60, ..., 300 degrees.
+    function hexPath(cx, cy, r) {
+      const pts = [];
+      for (let i = 0; i < 6; i += 1) {
+        const a = (Math.PI / 180) * (60 * i);
+        pts.push((cx + r * Math.cos(a)).toFixed(2) + ',' + (cy + r * Math.sin(a)).toFixed(2));
+      }
+      return pts.join(' ');
+    }
+    document.getElementById('hex').setAttribute('points', hexPath(76, 112, 70));
+
+    const core = window.__TAURI__.core;
+    const log = (m) => core.invoke('spike_log', { msg: m });
+    const win = window.__TAURI__.window.getCurrentWindow();
+
+    core.invoke('spike_mode').then((mode) => {
+      log('page loaded, mode=' + mode);
+      if (mode === 'layer') {
+        // A layer surface cannot use startDragging. The page moves it by margin deltas.
+        // The surface moves under the pointer, so the start point stays fixed.
+        let start = null;
+        document.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0) return;
+          start = { x: e.clientX, y: e.clientY };
+          document.body.setPointerCapture(e.pointerId);
+        });
+        document.addEventListener('pointermove', (e) => {
+          if (!start) return;
+          const dx = Math.round(e.clientX - start.x);
+          const dy = Math.round(e.clientY - start.y);
+          if (dx !== 0 || dy !== 0) core.invoke('layer_move_by', { dx, dy });
+        });
+        document.addEventListener('pointerup', () => { start = null; });
+      } else {
+        document.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return;
+          win.startDragging()
+            .then(() => log('mousedown startDragging resolved'))
+            .catch((err) => log('mousedown startDragging rejected: ' + err));
+        });
+      }
+    });
+  </script>
+</body>
+</html>

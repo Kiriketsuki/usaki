@@ -1,0 +1,13 @@
+{
+  "name": "usaki-spike-hypr-window",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "tauri": "tauri",
+    "build": "CARGO_TARGET_DIR=./target tauri build --no-bundle",
+    "dev": "CARGO_TARGET_DIR=./target tauri dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0"
+  }
+}

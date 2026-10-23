@@ -1,0 +1,21 @@
+[package]
+name = "usaki-spike-hypr-window"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# The spike is a standalone crate. It must not join a workspace of the real app.
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+
+# Tauri v2 on Linux uses the gtk 0.18 crate. gtk-layer-shell 0.8 binds against gtk 0.18.
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+# The v0_6 feature adds set_keyboard_mode. The system library is 0.10.
+gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
