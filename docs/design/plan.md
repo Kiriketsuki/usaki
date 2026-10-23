@@ -67,7 +67,7 @@ ui/ (Vite + vanilla TS, no framework, to keep the webview light)
 ```
 
 Window flags: `decorations: false`, `transparent: true`, `alwaysOnTop: true`, `skipTaskbar: true`,
-`resizable: false`. The window resizes between 152×152 (bubble) and 420×470 (card), anchored at the top-left.
+`resizable: false`. The window resizes between 152×188 (bubble: the hex plus the ears) and 420×470 (card), anchored at the top-left.
 
 ## Changes outside the new repo
 
