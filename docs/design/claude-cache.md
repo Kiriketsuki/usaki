@@ -52,10 +52,10 @@ When `limits` is an array, the parser uses it and ignores `five_hour` and `seven
 
 | Field | Rule |
 |---|---|
-| `used_percentage` | A JSON number, int or float. Required inside a window. A negative value is an error. A value over 100 is kept as it is, so the UI can show an over-limit state. |
+| `used_percentage` | A JSON number, int or float. Required inside a window. A negative value is an error. The parser keeps a value over 100 as it is, so the UI can show an over-limit state. |
 | `resets_at` | Epoch seconds (int or float) or an RFC 3339 string. Optional. |
 | `written_at` | Same formats as `resets_at`. Optional, but see staleness. |
-| `window_minutes` | A whole number. 300 is the 5h window. 10080 is the 7d window. Any other value is kept as an "other" window. Two entries with the same value are an error. |
+| `window_minutes` | A whole number. 300 is the 5h window. 10080 is the 7d window. The parser keeps any other value as an "other" window. Two entries with the same value are an error. |
 | `five_hour`, `seven_day` | May be missing or `null`. The snapshot then has no such window. |
 | `account` | Informational. The reader uses the account id from its own config. |
 
@@ -72,4 +72,4 @@ When `limits` is an array, the parser uses it and ignores `five_hour` and `seven
 
 - A file that is not valid JSON gives an error that names the file and the parse problem.
 - A field with the wrong type gives an error that names the file and the field.
-- A file that cannot be read for another reason (for example, no permission) gives an I/O error.
+- Any other read failure (for example, no permission) gives an I/O error.
