@@ -5,7 +5,7 @@ Issue: #2. Date: 2026-10-23. Code: `spikes/hypr-window/`.
 ## Summary
 
 - A Tauri v2 toplevel stays above a fullscreen window only when Hyprland pins it from
-  the moment it maps. A window that loses its pin during a fullscreen change is hidden.
+  the moment it maps. Hyprland hides a window that loses its pin during a fullscreen change.
   It recovers when fullscreen ends, if it stays unpinned. A window pinned again while
   hidden stays invisible after fullscreen ends and after it gets focus.
 - A gtk-layer-shell overlay surface stays above fullscreen in both fullscreen modes. It
@@ -143,7 +143,7 @@ js: autotest setPosition rejected (control call, expected): window.set_position 
 ```
 
 So `core:window:allow-start-dragging` reaches the backend, and a missing permission shows
-as a clear rejection. The window did not move, because no button was held. The tools to
+as a clear rejection. The window did not move, because no mouse button was down. The tools to
 simulate a pointer (wtype, ydotool) are not installed. A real drag needs the manual check
 in [Manual checks](#manual-checks).
 
@@ -151,8 +151,8 @@ in [Manual checks](#manual-checks).
 
 Setup: a test kitty (`kitty --class usaki-spike-fs`, background `#802040`) on workspace 11,
 usaki at 2000,100 on the same workspace. Region: `grim -g "1980,80 240x240"`. The pixel at
-the hex centre is `srgb(26,138,106)` when usaki is visible, and the kitty colour when it is
-hidden.
+the hex centre is `srgb(26,138,106)` when usaki is visible, and the kitty colour when kitty
+covers it.
 
 | Case | kitty state | usaki | Result | Screenshot |
 |---|---|---|---|---|
@@ -176,20 +176,20 @@ The Hyprland v0.54.3 source explains the result:
   is `m_createdOverFullscreen` or `m_pinned`.
 - `src/desktop/view/Window.cpp:1974`. A floating window gets `m_createdOverFullscreen = true` at map.
 
-**Decision:** the toplevel is visible above fullscreen only when it floats and is pinned
-from the map onward. That holds with the `pin = on` rule. Suppose a user unpins it, for
-example with a pin keybind, and a fullscreen change then happens. The window is then
-hidden. Two cases follow:
+**Decision:** the toplevel is visible above fullscreen only when it floats and Hyprland
+pins it from the map onward. That holds with the `pin = on` rule. Suppose a user unpins it, for
+example with a pin keybind, and a fullscreen change then happens. Hyprland then hides
+the window. Two cases follow:
 
 - If it stays unpinned, it shows again when fullscreen ends.
-- If the user pins it again while it is hidden, it stays invisible after fullscreen ends,
+- If the user pins it again while Hyprland hides it, it stays invisible after fullscreen ends,
   after `alterzorder top`, and after a focus change. Live test: the hex centre stayed
   `srgb(117,31,60)` (the kitty colour) 5 s after `fullscreen 0`, and after
   `focuswindow usaki`. The cause is in
-  `src/managers/animation/DesktopAnimationManager.cpp:466-470`. The loop does
-  `if (w->m_fadingOut || w->m_pinned || w->isFullscreen()) continue;` before it resets
-  `*w->m_alpha = 1.F`. On fullscreen exit it skips the pinned window, so alpha stays 0.
-  `FocusState.cpp:39-40` runs only while the workspace has a fullscreen window, and it
+  `src/managers/animation/DesktopAnimationManager.cpp:466-470`. The loop skips a window when
+  `if (w->m_fadingOut || w->m_pinned || w->isFullscreen()) continue;` matches. Only after
+  that check does it reset `*w->m_alpha = 1.F`. On fullscreen exit it skips the pinned window, so alpha stays at zero.
+  The code in `FocusState.cpp:39-40` runs only while the workspace has a fullscreen window, and it
   sets the floating fade, not `m_alpha`. Focus therefore does not repair it.
 
 The app must never toggle pin at runtime on the toplevel path. A user who toggles pin by
@@ -201,7 +201,7 @@ The spike creates the window with `visible: false`, then calls
 `init_layer_shell()`, `set_namespace("usaki")`, `set_layer(Layer::Overlay)`, anchors top
 and left, sets the margins, `set_keyboard_mode(KeyboardMode::None)` and
 `set_exclusive_zone(-1)`, and then shows the window through Tauri. GTK reported
-`realized=false visible=false` before the init, so no unrealize was needed.
+`realized=false visible=false` before the init, so the spike did not need an unrealize.
 
 ```
 hyprctl layers -j  -> DP-2, level 3 (overlay): {"x":2000,"y":100,"w":152,"h":188,"namespace":"usaki"}
@@ -222,7 +222,7 @@ A layer surface cannot use `startDragging`. The spike page implements the drag i
 `src/index.html`. On `pointerdown` it stores the client point and captures the pointer. On
 each `pointermove` it sends the delta from that point to the `layer_move_by` command, which
 adds it to the margins. The point stays fixed, because the surface moves under the
-pointer. The command path is tested. The pointer path needs the manual check below.
+pointer. The spike tested the command path. The pointer path needs the manual check below.
 
 ## Sizing on Hyprland
 
@@ -315,7 +315,7 @@ effect is what keeps the window above fullscreen, so it must stay in the rule.
 
 ## Open risks for Windows 11
 
-None of these were tested. The spike ran on Linux only.
+The spike tested none of these. The spike ran on Linux only.
 
 - **Fullscreen:** `alwaysOnTop` puts the window in the topmost band. A borderless
   fullscreen app usually stays below it. An exclusive fullscreen game (DirectX flip model)
@@ -323,8 +323,8 @@ None of these were tested. The spike ran on Linux only.
   exclusive one.
 - **Corners and border:** Windows 11 DWM can round the corners of an undecorated window
   and draw a 1 px border. Chrysaki bans rounded corners. `shadow: false` may not be
-  enough, and `DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND)`
-  may be needed.
+  enough. The app may need
+  `DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND)`.
 - **Transparency:** WebView2 needs a transparent background colour for the page. Check that
   no white flash shows before the first paint.
 - **Click-through:** on both OSes, the transparent part of the window still takes clicks.
