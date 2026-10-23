@@ -1,0 +1,6 @@
+{
+  "account": "acc1",
+  "five_hour": { "used_percentage": 42, "resets_at": "2027-01-15T09:00:00Z" },
+  "seven_day": { "used_percentage": 17, "resets_at": "2027-01-18T19:20:00+00:00" },
+  "written_at": 1800000000
+}
