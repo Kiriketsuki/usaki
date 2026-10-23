@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>usaKi bubble</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 152px; height: 152px; position: relative; font-family: Inter, system-ui, sans-serif; color: #e0e2ea; filter: drop-shadow(0 4px 18px rgba(0,0,0,0.55)); opacity: {{opacity}};">
+  <div style="position: absolute; inset: 0; clip-path: polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0 50%); background: rgba(22,24,33,0.88); backdrop-filter: blur(16px) saturate(140%);"></div>
+  <svg width="152" height="152" viewBox="0 0 152 152" aria-hidden="true" style="position: absolute; inset: 0;">
+    <path d="{{outline}}" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"></path>
+    <sc-for list="{{rings}}" as="ring" hint-placeholder-count="4">
+      <path d="{{ring.d}}" fill="none" stroke="#252836" stroke-width="{{ring.sw}}"></path>
+      <path d="{{ring.d}}" fill="none" stroke="{{ring.color}}" stroke-width="{{ring.sw}}" stroke-opacity="{{ring.op}}" pathLength="100" stroke-dasharray="{{ring.dash}}" stroke-linecap="butt"></path>
+    </sc-for>
+  </svg>
+  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; pointer-events: none; font-family: 'Fira Code', monospace;">
+    <span style="font-size: 9px; line-height: 1.2; color: #a0a4b8;">{{top}}</span>
+    <span style="font-size: 17px; font-weight: 600; line-height: 1.1; color: #e0e2ea;">{{centre}}</span>
+    <span style="font-size: 10px; line-height: 1.2; color: #a0a4b8;">{{sub}}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"rings":{"editor":null,"tsType":"{pct:number,color:string,dim?:boolean}[]"},"top":{"editor":null,"tsType":"string"},"centre":{"editor":null,"tsType":"string"},"sub":{"editor":null,"tsType":"string"},"dim":{"editor":null,"tsType":"boolean"},"$preview":{"width":152,"height":152}}'>
+const C = 76;
+
+const SAMPLE = [
+  { pct: 42, color: '#1a8a6a' },
+  { pct: 81, color: '#e06a78' },
+  { pct: 18, color: '#1a8a6a' },
+  { pct: 9, color: '#1a8a6a', dim: true }
+];
+
+// A flat-top hexagon path that starts at the top centre and runs clockwise.
+// The ring progress then grows from 12 o'clock.
+function hexPath(r) {
+  const h = r * 0.8660;
+  return 'M ' + C + ' ' + (C - h) +
+    ' L ' + (C + r / 2) + ' ' + (C - h) +
+    ' L ' + (C + r) + ' ' + C +
+    ' L ' + (C + r / 2) + ' ' + (C + h) +
+    ' L ' + (C - r / 2) + ' ' + (C + h) +
+    ' L ' + (C - r) + ' ' + C +
+    ' L ' + (C - r / 2) + ' ' + (C - h) + ' Z';
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const rings = this.props.rings ?? SAMPLE;
+    const dense = rings.length > 4;
+    const step = dense ? 8 : 10;
+    const sw = dense ? 5 : 6;
+    return {
+      outline: hexPath(75),
+      opacity: this.props.dim ? 0.55 : 1,
+      top: this.props.top ?? 'next 5h',
+      centre: this.props.centre ?? '47m',
+      sub: this.props.sub ?? 'acc2 · 81%',
+      rings: rings.map((g, i) => ({
+        d: hexPath(66 - i * step),
+        sw: sw,
+        color: g.color,
+        op: g.dim ? 0.35 : 1,
+        dash: Math.max(0, Math.min(100, g.pct)) + ' 100'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

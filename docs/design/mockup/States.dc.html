@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>usaKi bubble states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 360px; box-sizing: border-box; padding: 40px 48px; background: #161821; font-family: Inter, system-ui, sans-serif; color: #e0e2ea; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px; align-items: start;">
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <dc-import name="Bubble" rings="{{clear}}" top="next 5h" centre="2h 13m" sub="acc1 · 42%" hint-size="152px,152px"></dc-import>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 13px; font-weight: 600; color: #1a8a6a;">Clear</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #a0a4b8;">Every ring under 50%. The centre counts down to the next 5h reset.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <dc-import name="Bubble" rings="{{warn}}" top="next 5h" centre="1h 05m" sub="acc2 · 63%" hint-size="152px,152px"></dc-import>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 13px; font-weight: 600; color: #FBB13C;">Warning</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #a0a4b8;">One ring at 50% or more turns blonde.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <dc-import name="Bubble" rings="{{crit}}" top="next 5h" centre="47m" sub="acc2 · 81%" hint-size="152px,152px"></dc-import>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 13px; font-weight: 600; color: #e06a78;">Critical</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #a0a4b8;">One ring at 75% or more turns ruby.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <dc-import name="Bubble" rings="{{capped}}" top="limit hit" centre="22m" sub="acc2 · 100%" hint-size="152px,152px"></dc-import>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 13px; font-weight: 600; color: #e06a78;">Limited</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #a0a4b8;">A full ring. The centre shows when that account comes back.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <dc-import name="Bubble" rings="{{clear}}" top="no data" centre="--" sub="offline" dim="{{yes}}" hint-size="152px,152px"></dc-import>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 13px; font-weight: 600; color: #a0a4b8;">Stale</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #a0a4b8;">No fresh data from any source. The whole bubble dims.</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <dc-import name="Bubble" rings="{{pinned}}" top="5h reset" centre="2h 13m" sub="acc1 · 42%" hint-size="152px,152px"></dc-import>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 13px; font-weight: 600; color: #20969c;">Pinned</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #a0a4b8;">Right-click shows the next account and wraps around. The other rings dim. Middle-click returns to auto.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":360}}'>
+const OK = '#1a8a6a';
+const WARN = '#FBB13C';
+const CRIT = '#e06a78';
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true,
+      clear: [{ pct: 42, color: OK }, { pct: 23, color: OK }, { pct: 18, color: OK }, { pct: 9, color: OK }],
+      warn: [{ pct: 42, color: OK }, { pct: 63, color: WARN }, { pct: 18, color: OK }, { pct: 9, color: OK }],
+      crit: [{ pct: 42, color: OK }, { pct: 81, color: CRIT }, { pct: 18, color: OK }, { pct: 9, color: OK, dim: true }],
+      pinned: [{ pct: 42, color: OK }, { pct: 81, color: CRIT, dim: true }, { pct: 18, color: OK, dim: true }, { pct: 9, color: OK, dim: true }],
+      capped: [{ pct: 42, color: OK }, { pct: 100, color: CRIT }, { pct: 18, color: OK }, { pct: 9, color: OK }]
+    };
+  }
+}
+</script>
+</body>
+</html>

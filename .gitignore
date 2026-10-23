@@ -19,3 +19,22 @@ Thumbs.db
 /build/
 /out/
 .gitnexus
+
+# Rust / Tauri
+/target/
+/src-tauri/target/
+/src-tauri/gen/
+
+# Node
+node_modules/
+
+# Account data: never commit real config, caches or credentials
+/config.toml
+*.local.toml
+/.cache/
+.credentials.json
+*credentials*.json
+auth.json
+
+# Agent session notes hold local paths and account details
+.claude/handoffs/

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>usaKi desktop prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0f1117}
+a{color:#20969c}a:hover{color:#FCC96A}
+@keyframes usaki-open{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.usaki-open{animation:usaki-open 220ms cubic-bezier(0.16,1,0.30,1)}
+</style>
+</helmet>
+<div onPointerDown="{{onDown}}" onPointerMove="{{onMove}}" onPointerUp="{{onUp}}" onPointerLeave="{{onUp}}" style="width: 1280px; height: 800px; position: relative; overflow: hidden; background: #0f1117; font-family: Inter, system-ui, sans-serif; color: #e0e2ea; user-select: none; touch-action: none;">
+
+  <div style="position: absolute; left: 8px; right: 8px; top: 4px; height: 28px; display: flex; justify-content: space-between; align-items: stretch; gap: 8px; font-family: 'Fira Code', monospace; font-size: 12px;">
+    <div style="display: flex; align-items: center; gap: 4px; padding: 0 12px; background: #1c1f2b; box-shadow: 3px 3px 0 rgba(0,0,0,0.70); color: #a0a4b8;">
+      <span style="color: #1a8a6a;">⬢</span><span>1</span><span style="color: #FBB13C;">⬢</span><span style="color: #e0e2ea;">2</span><span style="color: #1a8a6a;">⬢</span><span>4</span>
+    </div>
+    <div style="display: flex; align-items: center; padding: 0 16px; background: #1c1f2b; box-shadow: 3px 3px 0 rgba(0,0,0,0.70); color: #e0e2ea;">Fri 23 Oct  14:27</div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 0 12px; background: #1c1f2b; box-shadow: 3px 3px 0 rgba(0,0,0,0.70); color: #a0a4b8;">
+      <span>vol 40%</span><span>wifi</span><span>bat 82%</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 8px; top: 40px; width: 760px; height: 752px; background: #1c1f2b; border: 1px solid #363a4f; box-sizing: border-box; display: flex; flex-direction: column;">
+    <div style="height: 28px; display: flex; align-items: center; padding: 0 12px; background: #252836; border-bottom: 1px solid #363a4f; font-size: 12px; color: #a0a4b8;">ghostty  ~/dev/usaki</div>
+    <div style="padding: 16px; display: flex; flex-direction: column; gap: 6px; font-family: 'Fira Code', monospace; font-size: 13px; color: #a0a4b8;">
+      <div><span style="color: #1a8a6a;">~/dev/usaki</span> <span style="color: #FBB13C;">◆ main</span> ❯ <span style="color: #e0e2ea;">cargo run --release</span></div>
+      <div>   Compiling usaki-core v0.1.0</div>
+      <div>    Finished release in 4.12s</div>
+      <div>     Running target/release/usaki</div>
+      <div><span style="color: #20969c;">poll</span> claude/acct1    ok 42% · 31%</div>
+      <div><span style="color: #20969c;">poll</span> claude/acct2    ok 81% · 58%</div>
+      <div><span style="color: #20969c;">poll</span> codex/acct3     ok 18% · 29%</div>
+      <div><span style="color: #FBB13C;">warn</span> gemini/acct4    stale, last ok 3h ago</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 776px; top: 40px; width: 496px; height: 752px; background: #1c1f2b; border: 1px solid #363a4f; box-sizing: border-box; display: flex; flex-direction: column;">
+    <div style="height: 28px; display: flex; align-items: center; padding: 0 12px; background: #252836; border-bottom: 1px solid #363a4f; font-size: 12px; color: #a0a4b8;">nvim  config.toml</div>
+    <div style="padding: 16px; display: flex; flex-direction: column; gap: 6px; font-family: 'Fira Code', monospace; font-size: 13px; color: #a0a4b8;">
+      <div><span style="color: #FBB13C;">[[account]]</span></div>
+      <div>label    = <span style="color: #1a8a6a;">"Account 2"</span></div>
+      <div>provider = <span style="color: #1a8a6a;">"claude"</span></div>
+      <div>source   = <span style="color: #1a8a6a;">"~/.claude-account2"</span></div>
+      <div>mode     = <span style="color: #1a8a6a;">"auto"</span></div>
+    </div>
+  </div>
+
+  <sc-if value="{{collapsed}}" hint-placeholder-val="{{ true }}">
+    <button type="button" data-drag="1" data-toggle="1" onClick="{{keyToggle}}" onContextMenu="{{cycle}}" onAuxClick="{{auto}}" aria-label="{{bubbleLabel}}" style="position: absolute; left: {{px}}px; top: {{py}}px; width: 152px; height: 152px; padding: 0; margin: 0; border: 0; background: none; cursor: grab;">
+      <dc-import name="Bubble" rings="{{rings}}" top="{{top}}" centre="{{centre}}" sub="{{sub}}" hint-size="152px,152px"></dc-import>
+    </button>
+  </sc-if>
+
+  <sc-if value="{{expanded}}" hint-placeholder-val="{{ false }}">
+    <div class="usaki-open" style="position: absolute; left: {{px}}px; top: {{py}}px; width: 420px;">
+      <dc-import name="Card" accounts="{{accounts}}" updated="{{updated}}" on-collapse="{{collapse}}" hint-size="420px,470px"></dc-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"ringWindow":{"editor":"enum","options":["5h","7d","worst"],"default":"5h","section":"Bubble"},"startExpanded":{"editor":"boolean","default":false,"section":"Bubble"},"$preview":{"width":1280,"height":800}}'>
+const W = 1280;
+const H = 800;
+const BUBBLE = 152;
+const CARD_W = 420;
+const CARD_H = 470;
+const TOP = 36;
+
+const BASE = [
+  { id: 'a1', label: 'Account 1', short: 'acc1', plan: 'Plan A', color: '#d47622', five: { pct: 42, mins: 133 }, week: { pct: 31, mins: 4 * 1440 + 6 * 60 + 20 } },
+  { id: 'a2', label: 'Account 2', short: 'acc2', plan: 'Plan B', color: '#d47622', five: { pct: 81, mins: 47 }, week: { pct: 58, mins: 1440 + 9 * 60 } },
+  { id: 'a3', label: 'Account 3', short: 'acc3', plan: 'Plan C', color: '#20969c', five: { pct: 18, mins: 182 }, week: { pct: 29, mins: 2 * 1440 + 3 * 60 } },
+  { id: 'a4', label: 'Account 4', short: 'acc4', plan: 'Plan D', color: '#3d95e0', five: { pct: 9, mins: 251 }, week: { pct: 12, mins: 5 * 1440 }, stale: '3h' }
+];
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function tone(p) { return p >= 75 ? '#e06a78' : p >= 50 ? '#FBB13C' : '#1a8a6a'; }
+function pad(n) { return String(n).padStart(2, '0'); }
+function left(mins) {
+  if (mins <= 0) return 'now';
+  const m = Math.ceil(mins);
+  const d = Math.floor(m / 1440);
+  const h = Math.floor((m % 1440) / 60);
+  const mm = m % 60;
+  if (d > 0) return d + 'd ' + h + 'h';
+  if (h > 0) return h + 'h ' + pad(mm) + 'm';
+  return mm + 'm';
+}
+function at(epoch, withDay) {
+  const t = new Date(epoch);
+  const hm = pad(t.getHours()) + ':' + pad(t.getMinutes());
+  if (!withDay) return hm;
+  return t.toLocaleDateString('en-GB', { weekday: 'short' }) + ' ' + hm;
+}
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.t0 = Date.now();
+    this.drag = null;
+    // pin is null for auto (earliest 5h reset), or the index of the account
+    // in the centre. A right-click steps pin to the next account and wraps.
+    // A middle-click sets pin back to null.
+    this.state = { x: 1080, y: 600, now: this.t0, open: null, pin: null };
+  }
+  componentDidMount() { this.timer = setInterval(() => this.setState({ now: Date.now() }), 15000); }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  isOpen() { return this.state.open ?? (this.props.startExpanded ?? false); }
+  dims() { return this.isOpen() ? [CARD_W, CARD_H] : [BUBBLE, BUBBLE]; }
+  toggle() { this.setState({ open: !this.isOpen() }); }
+
+  renderVals() {
+    const now = this.state.now;
+    const elapsed = (now - this.t0) / 60000;
+    const win = this.props.ringWindow ?? '5h';
+    const open = this.isOpen();
+
+    const accounts = BASE.map((a) => {
+      const r5 = a.five.mins - elapsed;
+      const r7 = a.week.mins - elapsed;
+      return {
+        id: a.id, label: a.label, plan: a.plan, color: a.color, stale: a.stale || '', isStale: !!a.stale,
+        rows: a.stale ? 'opacity: 0.5' : 'opacity: 1',
+        windows: [
+          { name: '5h', pct: a.five.pct, color: tone(a.five.pct), left: left(r5), at: at(this.t0 + a.five.mins * 60000, false) },
+          { name: '7d', pct: a.week.pct, color: tone(a.week.pct), left: left(r7), at: at(this.t0 + a.week.mins * 60000, true) }
+        ],
+        r5: r5
+      };
+    });
+
+    const live = accounts.filter((a) => !a.isStale);
+    const next = live.reduce((best, a) => (best == null || a.r5 < best.r5 ? a : best), null);
+    const pin = this.state.pin;
+    const shown = pin == null ? next : accounts[pin];
+    const shownBase = shown ? BASE.find((b) => b.id === shown.id) : null;
+
+    const rings = BASE.map((a, i) => {
+      const p = win === '7d' ? a.week.pct : win === 'worst' ? Math.max(a.five.pct, a.week.pct) : a.five.pct;
+      return { pct: p, color: tone(p), dim: !!a.stale || (pin != null && i !== pin) };
+    });
+
+    const top = !shown ? '' : shown.isStale ? 'stale ' + shown.stale : pin == null ? 'next 5h' : '5h reset';
+
+    const [w, h] = open ? [CARD_W, CARD_H] : [BUBBLE, BUBBLE];
+    const x = clamp(this.state.x, 0, W - w);
+    const y = clamp(this.state.y, TOP, H - h);
+    return {
+      px: x,
+      py: y,
+      collapsed: !open,
+      expanded: open,
+      rings: rings,
+      top: top,
+      centre: shown ? left(shown.r5) : '--',
+      sub: shownBase ? shownBase.short + ' · ' + shownBase.five.pct + '%' : 'offline',
+      bubbleLabel: shown ? 'AI usage. ' + shown.label + ' 5 hour window ' + shownBase.five.pct + '% used, resets in ' + left(shown.r5) + '. Press to expand. Right-click shows the next account. Middle-click returns to auto.' : 'AI usage. Press to expand.',
+      cycle: (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const from = shown ? accounts.indexOf(shown) : -1;
+        this.setState({ pin: (from + 1) % BASE.length });
+      },
+      auto: (e) => {
+        if (!e || e.button !== 1) return;
+        e.preventDefault();
+        this.setState({ pin: null });
+      },
+      accounts: accounts,
+      updated: 'updated ' + Math.max(1, Math.round(elapsed + 2)) + 'm ago',
+      collapse: () => this.toggle(),
+      keyToggle: (e) => { if (e && e.detail === 0) this.toggle(); },
+      onDown: (e) => {
+        // A middle press would start browser autoscroll before auxclick fires.
+        if (e.button === 1) e.preventDefault();
+        if (e.button !== 0) return;
+        const handle = e.target && e.target.closest ? e.target.closest('[data-drag]') : null;
+        if (!handle) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const [dw, dh] = this.dims();
+        this.drag = {
+          sx: e.clientX, sy: e.clientY,
+          ox: clamp(this.state.x, 0, W - dw), oy: clamp(this.state.y, TOP, H - dh),
+          scale: rect.width / W || 1, moved: false,
+          toggle: !!e.target.closest('[data-toggle]')
+        };
+      },
+      onMove: (e) => {
+        const d = this.drag;
+        if (!d) return;
+        const dx = (e.clientX - d.sx) / d.scale;
+        const dy = (e.clientY - d.sy) / d.scale;
+        if (!d.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+        d.moved = true;
+        const [dw, dh] = this.dims();
+        this.setState({ x: clamp(d.ox + dx, 0, W - dw), y: clamp(d.oy + dy, TOP, H - dh) });
+      },
+      onUp: () => {
+        const d = this.drag;
+        this.drag = null;
+        if (d && !d.moved && d.toggle) this.toggle();
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

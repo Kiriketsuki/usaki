@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>usaKi settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0f1117}
+a{color:#20969c}a:hover{color:#FCC96A}
+input,select,button{font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid #20969c;outline-offset:1px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 32px 16px; background: #0f1117; font-family: Inter, system-ui, sans-serif; color: #e0e2ea;">
+  <div style="max-width: 920px; margin: 0 auto; filter: drop-shadow(3px 3px 0 rgba(0,0,0,0.70));">
+    <div style="clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); background: #1c1f2b; display: flex; flex-direction: column;">
+      <div style="height: 3px; background: linear-gradient(90deg, #1a8a6a, #1c3d7a, #583090);"></div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: 1px solid #363a4f;">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #1a8a6a;">usaKi settings</h1>
+        <span style="flex-grow: 1;"></span>
+        <span style="font-family: 'Fira Code', monospace; font-size: 12px; color: #a0a4b8;">v0.1.0 · Linux · Hyprland</span>
+      </div>
+
+      <section style="display: flex; flex-direction: column; gap: 16px; padding: 24px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; border-bottom: 1px solid #363a4f; padding-bottom: 8px;">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: #20969c;">Accounts</h2>
+          <span style="font-size: 12px; color: #a0a4b8;">Ring order matches this list, outermost first.</span>
+        </div>
+
+        <sc-for list="{{accounts}}" as="a" hint-placeholder-count="4">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding: 12px; background: #252836; box-shadow: inset 3px 0 0 {{a.color}};">
+            <div style="display: flex; gap: 0;">
+              <button type="button" aria-label="Move {{a.label}} up" style="width: 44px; height: 44px; border: 1px solid #363a4f; background: #1c1f2b; color: #a0a4b8; cursor: pointer;">▲</button>
+              <button type="button" aria-label="Move {{a.label}} down" style="width: 44px; height: 44px; border: 1px solid #363a4f; border-left: 0; background: #1c1f2b; color: #a0a4b8; cursor: pointer;">▼</button>
+            </div>
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 170px; min-width: 0; font-size: 11px; color: #a0a4b8;">Label
+              <input type="text" defaultValue="{{a.label}}" style="height: 44px; box-sizing: border-box; padding: 0 10px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-size: 13px;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 130px; min-width: 0; font-size: 11px; color: #a0a4b8;">Provider
+              <select defaultValue="{{a.provider}}" style="height: 44px; padding: 0 8px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-size: 13px;">
+                <option>Claude</option>
+                <option>ChatGPT · Codex</option>
+                <option>Gemini</option>
+                <option>GitHub Copilot</option>
+                <option>OpenRouter</option>
+              </select>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 2 1 200px; min-width: 0; font-size: 11px; color: #a0a4b8;">Source
+              <input type="text" defaultValue="{{a.source}}" style="height: 44px; box-sizing: border-box; padding: 0 10px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-family: 'Fira Code', monospace; font-size: 12px;">
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 4px; flex: 2 1 220px; min-width: 0; font-size: 11px; color: #a0a4b8;">Fetch mode
+              <select defaultValue="{{a.mode}}" style="height: 44px; padding: 0 8px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-size: 13px;">
+                <sc-for list="{{a.modes}}" as="m" hint-placeholder-count="2">
+                  <option>{{m.text}}</option>
+                </sc-for>
+              </select>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; height: 44px; font-size: 13px; color: #e0e2ea;">
+              <input type="checkbox" defaultChecked="{{a.enabled}}" style="width: 18px; height: 18px; accent-color: #1a8a6a;">Show
+            </label>
+            <button type="button" aria-label="Remove {{a.label}}" style="width: 44px; height: 44px; border: 1px solid #363a4f; background: #1c1f2b; color: #e06a78; cursor: pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg>
+            </button>
+          </div>
+        </sc-for>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+          <button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #1a8a6a; background: #0e4a38; color: #e0e2ea; font-size: 13px; font-weight: 600; cursor: pointer;">+ Add account</button>
+          <button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #363a4f; background: #1c1f2b; color: #e0e2ea; font-size: 13px; cursor: pointer;">Detect logins</button>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 16px; padding: 0 24px 24px;">
+        <div style="border-bottom: 1px solid #363a4f; padding-bottom: 8px;">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: #20969c;">Bubble</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+          <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px;">
+            <legend style="padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #FBB13C;">Rings show</legend>
+            <label style="display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px;"><input type="radio" name="ring" defaultChecked="{{yes}}" style="accent-color: #1a8a6a;">5h window</label>
+            <label style="display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px;"><input type="radio" name="ring" style="accent-color: #1a8a6a;">7d window</label>
+            <label style="display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px;"><input type="radio" name="ring" style="accent-color: #1a8a6a;">Worse of the two</label>
+          </fieldset>
+          <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px;">
+            <legend style="padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #FBB13C;">Centre in auto</legend>
+            <label style="display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px;"><input type="radio" name="centre" defaultChecked="{{yes}}" style="accent-color: #1a8a6a;">Earliest 5h reset</label>
+            <label style="display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px;"><input type="radio" name="centre" style="accent-color: #1a8a6a;">Earliest reset, any window</label>
+            <label style="display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px;"><input type="radio" name="centre" style="accent-color: #1a8a6a;">Highest % used</label>
+          </fieldset>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; color: #a0a4b8;">
+            <span style="padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #FBB13C;">Mouse</span>
+            <span><span style="font-family: 'Fira Code', monospace; color: #e0e2ea;">left</span> drag to move, click to expand</span>
+            <span><span style="font-family: 'Fira Code', monospace; color: #e0e2ea;">right</span> show the next account in the centre</span>
+            <span><span style="font-family: 'Fira Code', monospace; color: #e0e2ea;">middle</span> return the centre to auto</span>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #a0a4b8;">Size
+            <select defaultValue="Medium · 152 px" style="height: 44px; padding: 0 8px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-size: 13px;">
+              <option>Small · 120 px</option>
+              <option>Medium · 152 px</option>
+              <option>Large · 184 px</option>
+            </select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #a0a4b8;">Opacity · 88%
+            <input type="range" min="40" max="100" defaultValue="88" style="height: 44px; accent-color: #1a8a6a;">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #a0a4b8;">Warning at %
+            <input type="number" min="1" max="100" defaultValue="50" style="height: 44px; box-sizing: border-box; padding: 0 10px; background: #161821; border: 1px solid #363a4f; color: #FBB13C; font-family: 'Fira Code', monospace; font-size: 13px;">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #a0a4b8;">Critical at %
+            <input type="number" min="1" max="100" defaultValue="75" style="height: 44px; box-sizing: border-box; padding: 0 10px; background: #161821; border: 1px solid #363a4f; color: #e06a78; font-family: 'Fira Code', monospace; font-size: 13px;">
+          </label>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 16px; padding: 0 24px 24px;">
+        <div style="border-bottom: 1px solid #363a4f; padding-bottom: 8px;">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: #20969c;">Behaviour</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 20px;">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #a0a4b8;">Poll every
+            <select defaultValue="5 min" style="height: 44px; padding: 0 8px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-size: 13px;">
+              <option>2 min</option>
+              <option>5 min</option>
+              <option>10 min</option>
+              <option>15 min</option>
+            </select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #a0a4b8;">Expand on
+            <select defaultValue="Click" style="height: 44px; padding: 0 8px; background: #161821; border: 1px solid #363a4f; color: #e0e2ea; font-size: 13px;">
+              <option>Click</option>
+              <option>Hover</option>
+            </select>
+          </label>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 20px;">
+          <sc-for list="{{toggles}}" as="t" hint-placeholder-count="7">
+            <label style="display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 13px; color: #e0e2ea;">
+              <input type="checkbox" defaultChecked="{{t.on}}" style="width: 18px; height: 18px; accent-color: #1a8a6a;">{{t.text}}
+            </label>
+          </sc-for>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 24px; background: #161821; border-top: 1px solid #363a4f;">
+        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 280px; min-width: 0; font-family: 'Fira Code', monospace; font-size: 12px; color: #a0a4b8;">
+          <span>~/.config/usaki/config.toml</span>
+          <span>%APPDATA%\usaki\config.toml</span>
+        </div>
+        <button type="button" style="height: 44px; padding: 0 16px; border: 1px solid #363a4f; background: #1c1f2b; color: #e0e2ea; font-size: 13px; cursor: pointer;">Open config file</button>
+        <a href="Main.dc.html" style="height: 44px; display: flex; align-items: center; padding: 0 16px; border: 1px solid #363a4f; background: #1c1f2b; color: #e0e2ea; font-size: 13px; text-decoration: none;">Cancel</a>
+        <a href="Main.dc.html" style="height: 44px; display: flex; align-items: center; padding: 0 20px; border: 1px solid #1a8a6a; background: #14664e; color: #e0e2ea; font-size: 13px; font-weight: 600; text-decoration: none;">Save</a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":1240}}'>
+const CLAUDE_MODES = ['Statusline cache', 'Statusline cache, then API'];
+const CODEX_MODES = ['Codex session logs', 'Codex app-server'];
+const GEMINI_MODES = ['Gemini quota API (best effort)'];
+
+function modes(list) {
+  return list.map((text) => ({ text: text }));
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true,
+      accounts: [
+        { label: 'Account 1', color: '#d47622', provider: 'Claude', source: '~/.claude', modes: modes(CLAUDE_MODES), mode: CLAUDE_MODES[1], enabled: true },
+        { label: 'Account 2', color: '#d47622', provider: 'Claude', source: '~/.claude-account2', modes: modes(CLAUDE_MODES), mode: CLAUDE_MODES[1], enabled: true },
+        { label: 'Account 3', color: '#20969c', provider: 'ChatGPT · Codex', source: '~/.codex', modes: modes(CODEX_MODES), mode: CODEX_MODES[0], enabled: true },
+        { label: 'Account 4', color: '#3d95e0', provider: 'Gemini', source: '~/.gemini', modes: modes(GEMINI_MODES), mode: GEMINI_MODES[0], enabled: true }
+      ],
+      toggles: [
+        { text: 'Remember position', on: true },
+        { text: 'Lock position', on: false },
+        { text: 'Remember the centre account', on: true },
+        { text: 'Click-through when collapsed', on: false },
+        { text: 'Stay above fullscreen windows (untested on Linux)', on: false },
+        { text: 'Start on login', on: true },
+        { text: 'Notify when a window turns critical', on: true },
+        { text: 'Notify when a limit resets', on: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

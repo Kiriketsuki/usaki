@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>usaKi expanded card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 420px; font-family: Inter, system-ui, sans-serif; color: #e0e2ea; filter: drop-shadow(0 4px 30px rgba(0,0,0,0.45));">
+  <div style="clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); background: rgba(22,24,33,0.92); backdrop-filter: blur(16px) saturate(140%); display: flex; flex-direction: column;">
+    <div style="height: 3px; background: linear-gradient(90deg, #1a8a6a, #1c3d7a, #583090);"></div>
+
+    <div data-drag="1" style="display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 4px; cursor: grab; border-bottom: 1px solid #363a4f;">
+      <button type="button" data-toggle="1" onClick="{{collapse}}" aria-label="Collapse to bubble" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; border: 0; background: none; color: #FBB13C; cursor: pointer;">
+        <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><path d="M5 1 L15 1 L19 9 L15 17 L5 17 L1 9 Z" fill="none" stroke="currentColor" stroke-width="2"></path><path d="M7.5 5 L12.5 5 L14.5 9 L12.5 13 L7.5 13 L5.5 9 Z" fill="currentColor"></path></svg>
+      </button>
+      <span style="font-size: 14px; font-weight: 600; color: #e0e2ea;">AI usage</span>
+      <span style="flex-grow: 1;"></span>
+      <span style="font-family: 'Fira Code', monospace; font-size: 11px; color: #a0a4b8; padding-right: 4px;">{{updated}}</span>
+      <button type="button" aria-label="Refresh now" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; border: 0; background: none; color: #a0a4b8; cursor: pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>
+      </button>
+      <a href="Settings.dc.html" aria-label="Open settings" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #a0a4b8;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"></path></svg>
+      </a>
+    </div>
+
+    <sc-for list="{{accounts}}" as="acct" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #252836;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="12" height="11" viewBox="0 0 12 11" aria-hidden="true"><path d="M3 0.5 L9 0.5 L11.5 5.5 L9 10.5 L3 10.5 L0.5 5.5 Z" fill="{{acct.color}}"></path></svg>
+          <span style="font-size: 13px; font-weight: 600; color: #e0e2ea;">{{acct.label}}</span>
+          <span style="font-size: 11px; color: #a0a4b8;">{{acct.plan}}</span>
+          <span style="flex-grow: 1;"></span>
+          <sc-if value="{{acct.isStale}}" hint-placeholder-val="{{ false }}">
+            <span style="font-family: 'Fira Code', monospace; font-size: 11px; color: #FBB13C;">◆ stale {{acct.stale}}</span>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; {{acct.rows}};">
+          <sc-for list="{{acct.windows}}" as="w" hint-placeholder-count="2">
+            <div style="display: grid; grid-template-columns: 24px minmax(0, 1fr) 40px 128px; gap: 10px; align-items: center; font-family: 'Fira Code', monospace; font-size: 12px;">
+              <span style="color: #a0a4b8; font-size: 11px;">{{w.name}}</span>
+              <div style="height: 8px; background: #252836; box-shadow: inset 0 0 0 1px #363a4f;">
+                <div style="width: {{w.pct}}%; height: 100%; background: {{w.color}};"></div>
+              </div>
+              <span style="text-align: right; color: #e0e2ea;">{{w.pct}}%</span>
+              <span style="color: #e0e2ea; white-space: nowrap;">↻ {{w.left}} <span style="color: #a0a4b8;">{{w.at}}</span></span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accounts":{"editor":null,"tsType":"object[]"},"updated":{"editor":null,"tsType":"string"},"onCollapse":{"editor":null,"tsType":"() => void"},"$preview":{"width":420,"height":470}}'>
+const SAMPLE = [
+  { id: 'a1', label: 'Account 1', plan: 'Plan A', color: '#d47622', stale: '', isStale: false, rows: 'opacity: 1',
+    windows: [
+      { name: '5h', pct: 42, color: '#1a8a6a', left: '2h 13m', at: '16:40' },
+      { name: '7d', pct: 31, color: '#1a8a6a', left: '4d 6h', at: 'Tue 20:47' }
+    ] },
+  { id: 'a2', label: 'Account 2', plan: 'Plan B', color: '#d47622', stale: '', isStale: false, rows: 'opacity: 1',
+    windows: [
+      { name: '5h', pct: 81, color: '#e06a78', left: '47m', at: '15:14' },
+      { name: '7d', pct: 58, color: '#FBB13C', left: '1d 9h', at: 'Sat 23:27' }
+    ] },
+  { id: 'a3', label: 'Account 3', plan: 'Plan C', color: '#20969c', stale: '', isStale: false, rows: 'opacity: 1',
+    windows: [
+      { name: '5h', pct: 18, color: '#1a8a6a', left: '3h 02m', at: '17:29' },
+      { name: '7d', pct: 29, color: '#1a8a6a', left: '2d 3h', at: 'Sun 17:27' }
+    ] },
+  { id: 'a4', label: 'Account 4', plan: 'Plan D', color: '#3d95e0', stale: '3h', isStale: true, rows: 'opacity: 0.5',
+    windows: [
+      { name: '5h', pct: 9, color: '#1a8a6a', left: '4h 11m', at: '18:38' },
+      { name: '7d', pct: 12, color: '#1a8a6a', left: '5d 0h', at: 'Wed 14:27' }
+    ] }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      accounts: this.props.accounts ?? SAMPLE,
+      updated: this.props.updated ?? 'updated 2m ago',
+      // A pointer click reaches the importer through data-toggle. A keyboard
+      // press has e.detail 0, so only that case calls onCollapse here.
+      collapse: (e) => { if (e && e.detail === 0 && this.props.onCollapse) this.props.onCollapse(); }
+    };
+  }
+}
+</script>
+</body>
+</html>
