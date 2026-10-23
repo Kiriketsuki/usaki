@@ -1,0 +1,54 @@
+name: "[Hotfix] Hotfix"
+description: Report an urgent production issue that needs an immediate fix
+title: "[Hotfix]: "
+labels: ["hotfix"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Use a Hotfix for urgent production issues that need an immediate fix. Hotfixes branch from `main` and when merged back to `main` will append an alphabetic **Patch** suffix to the current version (e.g. YY.MM.X.Y**a**, then **b**, ...). The target branch will be rebased before merge to ensure a linear history.
+
+    - type: input
+      id: branch_off
+      attributes:
+          label: Branch off
+          description: |
+              Optional. The base branch this issue's branch and PR should target.
+              Leave as `main` for the default. Set to a specific branch name (e.g.
+              `feature/149-new-trip-flow`) when this work is a sub-task of an
+              existing in-flight branch and the auto-handler should slot it under
+              that branch instead of `main`.
+              Parsed by `.github/workflows/issue-branch-handler.yml`.
+          placeholder: main
+          value: main
+      validations:
+          required: false
+
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: A clear and concise description of what is broken in production.
+          placeholder: What is broken, how does it manifest, and how can it be reproduced?
+      validations:
+          required: true
+
+    - type: textarea
+      id: impact
+      attributes:
+          label: Impact
+          description: Describe the impact on users and systems, and the urgency of the fix.
+          placeholder: |
+              - Affected users/systems: ...
+              - Severity: ...
+              - Workaround (if any): ...
+      validations:
+          required: true
+
+    - type: textarea
+      id: additional
+      attributes:
+          label: Additional context
+          description: Any other context, logs, stack traces, or links.
+      validations:
+          required: false

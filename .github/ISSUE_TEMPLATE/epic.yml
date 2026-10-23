@@ -1,0 +1,62 @@
+name: "[Epic] Epic"
+description: Track a large body of work spanning multiple tasks and features
+title: "[Epic]: "
+labels: ["epic"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Create an Epic to group a large body of work spanning multiple Tasks and Features. Epics branch from `main` and when merged back to `main` will bump the **Major** version (resetting Minor and Patch to 0: YY.**X**.0.0). The target branch will be rebased before merge to ensure a linear history.
+
+              **Hierarchical Workflow**: Add Tasks and Features as sub-issues of this Epic so their branches automatically slot under the epic branch for coordinated delivery.
+
+    - type: input
+      id: branch_off
+      attributes:
+          label: Branch off
+          description: |
+              Optional. The base branch this issue's branch and PR should target.
+              Leave as `main` for the default. Set to a specific branch name (e.g.
+              `feature/149-new-trip-flow`) when this work is a sub-task of an
+              existing in-flight branch and the auto-handler should slot it under
+              that branch instead of `main`.
+              Parsed by `.github/workflows/issue-branch-handler.yml`.
+          placeholder: main
+          value: main
+      validations:
+          required: false
+
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: A clear and concise description of the epic and the outcome it delivers.
+          placeholder: What is the goal of this epic, and why does it matter?
+      validations:
+          required: true
+
+    - type: textarea
+      id: scope_acceptance
+      attributes:
+          label: Scope & Acceptance Criteria
+          description: Define what is in and out of scope, and the criteria that mark this epic complete.
+          placeholder: |
+              **In scope:**
+              - ...
+
+              **Out of scope:**
+              - ...
+
+              **Acceptance criteria:**
+              - [ ] Criterion 1
+              - [ ] Criterion 2
+      validations:
+          required: true
+
+    - type: textarea
+      id: additional
+      attributes:
+          label: Additional context
+          description: Any other context, links, sub-issues, or technical notes.
+      validations:
+          required: false

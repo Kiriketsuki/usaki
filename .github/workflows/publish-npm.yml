@@ -1,0 +1,114 @@
+name: Publish npm Package
+
+# OPT-IN, inert-by-default publish bridge.
+#
+# Publishes to GitHub Packages only when the repo actually ships an npm package.
+# A tiny `detect` job checks for package.json and the `publish-npm` job runs only
+# when it is present (`needs.detect.outputs.present == 'true'`). hashFiles() is
+# deliberately NOT used in a job-level `if` — it needs a runner workspace and is
+# invalid there, which produces an Actions startup failure.
+#
+# Trigger: pushing a release tag (v*). The release workflow creates these tags.
+on:
+    push:
+        tags:
+            - 'v*'
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    detect:
+        runs-on: ubuntu-latest
+        outputs:
+            present: ${{ steps.check.outputs.present }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Detect package.json
+              id: check
+              run: |
+                  if [ -f package.json ]; then
+                    echo "present=true" >> "$GITHUB_OUTPUT"
+                    echo "package.json found — npm publish will run."
+                  else
+                    echo "present=false" >> "$GITHUB_OUTPUT"
+                    echo "No package.json at repo root — npm publish is inert here."
+                  fi
+
+    publish-npm:
+        needs: detect
+        if: needs.detect.outputs.present == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  registry-url: 'https://npm.pkg.github.com'
+
+            - name: Convert CalVer VERSION to npm semver
+              id: version
+              run: |
+                  node scripts/version-package.mjs semver
+                  NPM_VERSION=$(node scripts/version-package.mjs print-semver)
+                  PKG_NAME=$(node -p "require('./package.json').name")
+                  echo "npm_version=$NPM_VERSION" >> "$GITHUB_OUTPUT"
+                  echo "pkg_name=$PKG_NAME" >> "$GITHUB_OUTPUT"
+                  echo "Resolved npm version: $NPM_VERSION"
+                  echo "Package name: $PKG_NAME"
+
+            - name: Check if version is already published
+              id: check
+              run: |
+                  NPM_VERSION="${{ steps.version.outputs.npm_version }}"
+                  PKG_NAME="${{ steps.version.outputs.pkg_name }}"
+                  if npm view "${PKG_NAME}@${NPM_VERSION}" version >/dev/null 2>&1; then
+                    echo "already_published=true" >> "$GITHUB_OUTPUT"
+                    echo "Version ${PKG_NAME}@${NPM_VERSION} is already published — skipping."
+                  else
+                    echo "already_published=false" >> "$GITHUB_OUTPUT"
+                    echo "Version ${PKG_NAME}@${NPM_VERSION} is not published — proceeding."
+                  fi
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install dependencies and build
+              if: steps.check.outputs.already_published == 'false'
+              run: |
+                  if [ -f package-lock.json ]; then
+                    npm ci
+                  else
+                    npm install
+                  fi
+                  if node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
+                    npm run build
+                  else
+                    echo "No build script defined — skipping build."
+                  fi
+
+            - name: Publish to GitHub Packages
+              if: steps.check.outputs.already_published == 'false'
+              run: npm publish --tag latest
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Summary
+              run: |
+                  echo "## npm Publish Summary" >> "$GITHUB_STEP_SUMMARY"
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- **Package**: \`${{ steps.version.outputs.pkg_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- **npm version**: \`${{ steps.version.outputs.npm_version }}\`" >> "$GITHUB_STEP_SUMMARY"
+                  if [ "${{ steps.check.outputs.already_published }}" = "true" ]; then
+                    echo "- ⏭️ Already published — skipped." >> "$GITHUB_STEP_SUMMARY"
+                  else
+                    echo "- ✅ Published to GitHub Packages." >> "$GITHUB_STEP_SUMMARY"
+                  fi

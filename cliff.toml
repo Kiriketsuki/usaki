@@ -1,0 +1,94 @@
+[changelog]
+header = ""
+body = """
+{%- macro remote_url() -%}
+  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+{%- endmacro -%}
+
+{%- set priority = ["Features", "Bug Fixes", "Performance", "Refactor", "Documentation", "Testing", "Hotfix", "CI/CD", "Maintenance", "Reverted", "Other"] -%}
+{% for p in priority -%}
+{% for group, commits in commits | group_by(attribute="group") -%}
+{% if group == p %}
+### {{ group }}
+{% for commit in commits -%}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif -%}
+  {{- commit.message | split(pat="\n") | first | upper_first | trim -}}
+  {%- if commit.remote.username %} by @{{ commit.remote.username }}{%- endif -%}
+  {%- if commit.remote.pr_number %} in \
+  [#{{ commit.remote.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.remote.pr_number }}){%- endif %}
+{% endfor %}
+{% endif -%}
+{% endfor -%}
+{% endfor -%}
+
+{%- if github -%}
+{%- if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
+
+### New Contributors
+{% for contributor in github.contributors | filter(attribute="is_first_time", value=true) -%}
+* @{{ contributor.username }} made their first contribution\
+  {%- if contributor.pr_number %} in \
+  [#{{ contributor.pr_number }}]({{ self::remote_url() }}/pull/{{ contributor.pr_number }}){%- endif %}
+{% endfor -%}
+{%- endif -%}
+{%- endif -%}
+
+{%- if version and previous.version and remote.github.owner %}
+
+**Full Changelog**: {{ self::remote_url() }}/compare/{{ previous.version }}...{{ version }}
+{%- endif %}
+"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+commit_preprocessors = [
+    # Strip [skip ci] tags
+    { pattern = '\s*\[skip ci\]', replace = '' },
+    # Normalize legacy "[Type] Title" format -> conventional commit
+    { pattern = '(?i)^adding\s+\[feature\]:?\s*', replace = 'feat: ' },
+    { pattern = '(?i)^fixing\s+\[bug\]:?\s*', replace = 'fix: ' },
+    { pattern = '(?i)^implementing\s+\[task\]:?\s*', replace = 'chore: ' },
+    { pattern = '(?i)^adding\s+\[bug\]:?\s*', replace = 'fix: ' },
+    { pattern = '(?i)^adding\s+fix\s+', replace = 'fix: ' },
+    { pattern = '(?i)^adding\s+', replace = 'feat: ' },
+    { pattern = '(?i)^fixing\s+', replace = 'fix: ' },
+    { pattern = '(?i)^implementing\s+', replace = 'chore: ' },
+    # Normalize Revert messages
+    { pattern = '^Revert "(.+)"$', replace = 'revert: ${1}' },
+    # Clean up double-colon from normalization
+    { pattern = ':\s+:\s+', replace = ': ' },
+]
+commit_parsers = [
+    # Skip version bump / release noise
+    { message = '(?i)ci: release version', skip = true },
+    { message = '(?i)ci: manual version bump', skip = true },
+    { message = '(?i)ci: bump version', skip = true },
+    { message = '(?i)chore: bump version', skip = true },
+    { message = '(?i)ci: sync version', skip = true },
+    { message = '(?i)chore:.*version.*\[skip', skip = true },
+    { message = '(?i)chore:.*update version', skip = true },
+    { message = '(?i)^Merge', skip = true },
+
+    # Conventional commits
+    { message = '(?i)^feat', group = "Features" },
+    { message = '(?i)^fix', group = "Bug Fixes" },
+    { message = '(?i)^perf', group = "Performance" },
+    { message = '(?i)^refactor', group = "Refactor" },
+    { message = '(?i)^docs?[:(]', group = "Documentation" },
+    { message = '(?i)^test', group = "Testing" },
+    { message = '(?i)^hotfix', group = "Hotfix" },
+    { message = '(?i)^ci', group = "CI/CD" },
+    { message = '(?i)^style', group = "Maintenance" },
+    { message = '(?i)^chore', group = "Maintenance" },
+    { message = '(?i)^revert', group = "Reverted" },
+
+    # Catch-all
+    { message = '.*', group = "Other" },
+]
+filter_commits = true
+tag_pattern = "v[0-9].*"
+sort_commits = "newest"
