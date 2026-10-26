@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { EAR_HEIGHT, EAR_POINTS } from './ears';
+import { ears } from './ears';
 import { APOTHEM, CELL_R, HEAD_R } from './geometry';
-import { CELL_GAP, PAD, bodySite, cellGap, layout } from './layout';
+import { CELL_GAP, PAD, SHOULDER_COUNT, bodySite, cellGap, layout, shoulderSite } from './layout';
 
 const EPS = 1e-6;
 
 describe('layout', () => {
-  for (const count of [1, 2, 3, 4, 5, 8]) {
+  for (const count of [1, 2, 3, 4, 5, 6, 8]) {
     describe(`with ${count} accounts`, () => {
       const lay = layout(count);
       const [head, ...body] = lay.cells;
@@ -43,21 +43,21 @@ describe('layout', () => {
         }
       });
 
-      it('puts the ears on the top edge of the head, inside the window', () => {
-        expect(lay.earBase).toBeCloseTo(head.y - head.r * APOTHEM + 1, 9);
-        for (const [x, y] of EAR_POINTS) {
-          for (const px of [head.x + x, head.x - x]) {
-            expect(px).toBeGreaterThanOrEqual(0);
-            expect(px).toBeLessThanOrEqual(lay.width);
+      it('stands the ears of every fold state on the head, inside the window', () => {
+        expect(lay.earBase).toBeCloseTo(head.y - head.r * APOTHEM, 9);
+        for (const state of ['up', 'left', 'right', 'both'] as const) {
+          for (const c of ears(state, head.x, lay.earBase).flat()) {
+            expect(c.x - c.r).toBeGreaterThanOrEqual(PAD - EPS);
+            expect(c.x + c.r).toBeLessThanOrEqual(lay.width - PAD + EPS);
+            expect(c.y - c.r * APOTHEM).toBeGreaterThanOrEqual(PAD - EPS);
+            expect(c.y).toBeLessThan(lay.earBase);
           }
-          expect(lay.earBase + y).toBeGreaterThanOrEqual(0);
         }
-        expect(lay.earBase - EAR_HEIGHT).toBeGreaterThanOrEqual(PAD);
       });
     });
   }
 
-  for (const count of [2, 3, 4, 5]) {
+  for (const count of [2, 3, 4, 5, 6]) {
     it(`balances ${count} accounts left and right around the head`, () => {
       const { cells } = layout(count);
       const mid = cells[0].x;
@@ -91,13 +91,30 @@ describe('layout', () => {
     expect(under.y).toBeGreaterThan(chest.y);
   });
 
-  it('sizes the window for each count from 1 to 5', () => {
-    const sizes = [1, 2, 3, 4, 5].map((n) => [layout(n).width, layout(n).height]);
-    expect(sizes).toEqual([[124, 178], [124, 267], [260, 231], [260, 312], [260, 357]]);
+  it('sizes the window for each count from 1 to 6', () => {
+    const sizes = [1, 2, 3, 4, 5, 6].map((n) => [layout(n).width, layout(n).height]);
+    expect(sizes).toEqual([[139, 246], [155, 307], [310, 270], [310, 351], [310, 396], [310, 360]]);
   });
 
   it('sizes the one cell window to match the Rust start size', () => {
-    expect([layout(1).width, layout(1).height]).toEqual([124, 178]);
+    expect([layout(1).width, layout(1).height]).toEqual([139, 246]);
+  });
+
+  it('keeps 6 accounts under 360 px tall, with the head between two shoulders', () => {
+    const lay = layout(SHOULDER_COUNT);
+    expect(lay.height).toBeLessThanOrEqual(360);
+    const [head, left, right, under, ...haunches] = lay.cells;
+    expect(cellGap(head, left)).toBeCloseTo(CELL_GAP, 9);
+    expect(cellGap(head, right)).toBeCloseTo(CELL_GAP, 9);
+    expect(under.x).toBeCloseTo(head.x, 9);
+    expect(under.y).toBeGreaterThan(head.y);
+    haunches.forEach((c) => expect(c.y).toBeGreaterThan(under.y));
+  });
+
+  it('grows the shoulder body as rows of three under the head', () => {
+    expect(shoulderSite(2).x).toBeCloseTo(0, 9);
+    expect(shoulderSite(3).x).toBeCloseTo(shoulderSite(0).x, 9);
+    expect(shoulderSite(5).y).toBeGreaterThan(shoulderSite(2).y);
   });
 
   it('gives zero accounts the head only window', () => {

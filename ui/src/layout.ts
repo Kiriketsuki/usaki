@@ -1,20 +1,16 @@
-// The rabbit layout. The auto account is the head: the biggest cell, with the ears on it.
-// The other accounts are smaller body cells below the head. Every pair of cells that touch
-// has the same gap, and no two cells overlap. The function also gives the window size that
-// holds the cells and the ears.
+// The rabbit layout. Issue #21 draws the bubble as a front-view rabbit. The auto account is the
+// head: the biggest cell, with the ears on it. The other accounts are smaller body cells below
+// the head. Every pair of cells that touch has the same gap, and no two cells overlap. Small
+// decor hexes form the ears and the foot pads, and a backplate joins everything. The function
+// also gives the window size that holds the plate and its edge line.
 
-import { APOTHEM, CELL_APOTHEM, CELL_R, HEAD_R } from './geometry';
-import { EAR_HEIGHT, EAR_REACH } from './ears';
+import { allEarCells } from './ears';
+import { APOTHEM, CELL_APOTHEM, CELL_GAP, CELL_R, type Cell, HEAD_R, cellGap } from './geometry';
+import { type Decor, footPads } from './pads';
+import { PLATE_EDGE_W, plateHexes } from './plate';
 
-/** The gap between two cells that touch, in px. */
-export const CELL_GAP = 3;
-
-/** One cell: its centre and its radius in px. */
-export interface Cell {
-  x: number;
-  y: number;
-  r: number;
-}
+export { CELL_GAP, type Cell, cellGap };
+export type { Decor };
 
 export interface Point {
   x: number;
@@ -26,6 +22,9 @@ export interface Point {
 const PITCH_A = CELL_APOTHEM + CELL_GAP / 2;
 const PITCH_R = PITCH_A / APOTHEM;
 const HEAD_A = HEAD_R * APOTHEM;
+
+/** The account count from which the head sits between two shoulder cells. */
+export const SHOULDER_COUNT = 6;
 
 /**
  * Returns body site `i`, relative to the chest cell at (0, 0). Site 0 is the chest, under
@@ -40,6 +39,20 @@ export function bodySite(i: number): Point {
   return { x: (slot === 0 ? -1.5 : 1.5) * PITCH_R, y: (2 * row + 1) * PITCH_A };
 }
 
+/**
+ * Returns body site `i` of a head between two shoulders, relative to the chest site at
+ * (0, 0), which stays empty. Sites 0 and 1 are the left and the right shoulder beside the
+ * lower half of the head. Then come the cell under the head and the two haunches. More cells
+ * repeat that row of three further down. Six accounts then stay as short as five.
+ */
+export function shoulderSite(i: number): Point {
+  if (i < 2) return { x: (i === 0 ? -1.5 : 1.5) * PITCH_R, y: PITCH_A };
+  const row = Math.floor((i - 2) / 3);
+  const slot = (i - 2) % 3;
+  if (slot === 0) return { x: 0, y: (2 * row + 2) * PITCH_A };
+  return { x: (slot === 1 ? -1.5 : 1.5) * PITCH_R, y: (2 * row + 3) * PITCH_A };
+}
+
 // Two body cells sit as two feet beside the lower half of the head. Each foot faces a lower
 // slanted edge of the head with CELL_GAP between. The head centre then sits at this y,
 // relative to the feet sites, which are the left and the right haunch.
@@ -51,64 +64,59 @@ function headYOverFeet(): number {
 }
 
 // The cells relative to the chest site, head first. One body cell sits as the chest. Two
-// sit as feet. Three or more fill the body sites in order under a head that rests on the chest.
+// sit as feet. Three to five fill the body sites in order under a head that rests on the
+// chest. Six or more put the head between two shoulders and fill the shoulder sites.
 function rawCells(count: number): Cell[] {
   const body = Math.max(0, count - 1);
-  if (body === 2) {
-    const feet = [bodySite(1), bodySite(2)];
-    return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, ...feet.map((p) => ({ ...p, r: CELL_R }))];
+  const bodyCell = (p: Point): Cell => ({ ...p, r: CELL_R });
+  if (body === 2) return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, bodyCell(bodySite(1)), bodyCell(bodySite(2))];
+  if (count >= SHOULDER_COUNT) {
+    return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, ...Array.from({ length: body }, (_, i) => bodyCell(shoulderSite(i)))];
   }
   const head: Cell = { x: 0, y: -(CELL_APOTHEM + CELL_GAP + HEAD_A), r: HEAD_R };
-  return [head, ...Array.from({ length: body }, (_, i) => ({ ...bodySite(i), r: CELL_R }))];
+  return [head, ...Array.from({ length: body }, (_, i) => bodyCell(bodySite(i)))];
 }
 
-/** The clear space around the cells and the ears, in px. */
+/** The clear space between the plate edge line and the window border, in px. */
 export const PAD = 2;
-/** The gap between the window top and the tip of the ears, in px. */
-const EAR_TOP_GAP = 2;
-/** The ear base sits 1 px below the top edge, so no gap shows under the glass. */
-const EAR_SINK = 1;
 
 export interface Layout {
   /** Cell centres and radii in window px. Cell 0 is the head. */
   cells: Cell[];
-  /** The y of the ear base in window px. */
+  /** The foot pads in window px. */
+  pads: Decor[];
+  /** The y of the head top edge in window px. The ears stand on it. */
   earBase: number;
   width: number;
   height: number;
 }
 
+// The corners of a flat-top hex as two extents.
+function extent(h: Cell): { x0: number; x1: number; y0: number; y1: number } {
+  return { x0: h.x - h.r, x1: h.x + h.r, y0: h.y - h.r * APOTHEM, y1: h.y + h.r * APOTHEM };
+}
+
 /**
  * Returns the layout of `count` accounts. Zero accounts still get the head cell, for the no
- * data text. The window holds the cells, the ears above the head, and PAD on each side. The
- * layout depends on the count only, so a new head does not change the window size.
+ * data text. The window holds the plate of every fold state, its edge line and PAD on each
+ * side, so no pixel at the window border shows. The layout depends on the count only, so a
+ * new head or a fold does not change the window size.
  */
 export function layout(count: number): Layout {
   const raw = rawCells(Math.max(1, count));
   const head = raw[0];
-  const xs = raw.flatMap((c) => [c.x - c.r, c.x + c.r]);
-  const ys = raw.flatMap((c) => [c.y - c.r * APOTHEM, c.y + c.r * APOTHEM]);
-  const left = Math.min(...xs, head.x - EAR_REACH);
-  const right = Math.max(...xs, head.x + EAR_REACH);
-  const earTop = head.y - HEAD_A - EAR_HEIGHT - EAR_TOP_GAP;
-  const dx = PAD - left;
-  const dy = PAD - Math.min(earTop, ...ys);
+  const top = head.y - HEAD_A;
+  const pads = footPads(raw);
+  const all = plateHexes([...raw, ...pads, ...allEarCells(head.x, top)]).map(extent);
+  const margin = PAD + PLATE_EDGE_W;
+  const dx = margin - Math.min(...all.map((e) => e.x0));
+  const dy = margin - Math.min(...all.map((e) => e.y0));
+  const shift = <T extends Cell>(c: T): T => ({ ...c, x: c.x + dx, y: c.y + dy });
   return {
-    cells: raw.map((c) => ({ x: c.x + dx, y: c.y + dy, r: c.r })),
-    earBase: head.y - HEAD_A + EAR_SINK + dy,
-    width: Math.ceil(right + dx + PAD),
-    height: Math.ceil(Math.max(...ys) + dy + PAD)
+    cells: raw.map(shift),
+    pads: pads.map(shift),
+    earBase: top + dy,
+    width: Math.ceil(Math.max(...all.map((e) => e.x1)) + dx + margin),
+    height: Math.ceil(Math.max(...all.map((e) => e.y1)) + dy + margin)
   };
-}
-
-/**
- * Returns the gap between two flat-top hexagons, in px, or a negative number when they
- * overlap. Two flat-top hexagons share their three edge normals, so the largest separation
- * along those normals is the gap.
- */
-export function cellGap(a: Cell, b: Cell): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const normals: [number, number][] = [[0, 1], [APOTHEM, 0.5], [APOTHEM, -0.5]];
-  return Math.max(...normals.map(([nx, ny]) => Math.abs(dx * nx + dy * ny) - (a.r + b.r) * APOTHEM));
 }
