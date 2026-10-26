@@ -41,33 +41,35 @@ body {
   pointer-events: none;
 }
 
-/* src/fit.ts mirrors the gap, the font sizes and the line-heights below. Change them
-   together. */
+/* Each span sits on its own point around the cell centre. src/fit.ts sets the points and
+   the font sizes. line-height 1 makes the box the em box that the fit measures. */
 .cell-text {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
+  width: 0;
+  height: 0;
   font-family: 'Fira Code', monospace;
   white-space: nowrap;
 }
 
-.countdown {
-  font-size: 12px;
+.cell-text span {
+  position: absolute;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.pct {
   font-weight: 600;
-  line-height: 1.1;
   color: #e0e2ea;
 }
 
 .name {
-  font-size: 8px;
-  line-height: 1.2;
-  color: #e0e2ea;
+  color: #c8cbd8;
 }
 
-.figures {
-  font-size: 8px;
-  line-height: 1.2;
+.countdown {
   color: #a0a4b8;
+}
+
+.countdown.ready {
+  color: #20969c;
 }

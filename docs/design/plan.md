@@ -14,12 +14,15 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
 ## Settled decisions
 
 - **Framework:** Tauri v2 on both OSes, with one codebase. The user rejected AGS. The mockup HTML and SVG port directly.
-- **Shape:** flat-top hexagons only. Each account is one hex cell, 88 px corner to corner, and the cells tile edge to edge into one cluster (issue #11).
+- **Shape:** flat-top hexagons only. Each account is one hex cell, 100 px corner to corner, and the cells tile edge to edge into one cluster (issue #11).
   The fill order gives 2 cells on a diagonal, 3 as a triangle, 4 as a diamond and 5 as a kite. More cells fill rings around the middle.
-  Each cell has a thick 5h ring and a thin 7d ring inside it. Chrysaki bans rounded corners. The user dropped the circle option.
+  Each cell has two 3 px rings: the 7d ring outside and the 5h ring inside it. Chrysaki bans rounded corners. The user dropped the circle option.
 - **Mouse:** left-drag moves the widget. A left-click expands the bubble in place into the card, and a click on the card's header hex collapses it.
   A right-click shows the next account in the centre (one step, wraps, never auto). A middle-click returns the centre to auto (earliest 5h reset).
-- **Cell text:** three lines in each cell. The 5h countdown, the account name, and `<5h>/<7d>%`. A name longer than 12 characters ends in an ellipsis.
+- **Cell text:** three rows on the cell centre. The 5h window is always on the left and the 7d window on the right.
+  The top row shows the two percents. The middle row shows the account name. The bottom row shows the two countdowns
+  (`33m`, `1h12m` or `2d04h`). A window with no reset time, such as an unused 5h window, shows 0% and `ready`.
+  A name longer than 12 characters ends in an ellipsis.
   The auto account (earliest 5h reset) or the pinned account gets a bright outline. A stale cell dims.
 - **Colour thresholds:** emerald `#1a8a6a` under 50%, blonde `#FBB13C` from 50%, ruby `#e06a78` from 75%. All three thresholds can be configured.
 - **Each machine fetches its own data.** Windows has its own logins. The design has no network sync.
@@ -77,7 +80,8 @@ ui/ (Vite + vanilla TS, no framework, to keep the webview light)
 ```
 
 Window flags: `decorations: false`, `transparent: true`, `alwaysOnTop: true`, `skipTaskbar: true`,
-`resizable: false`. The bubble window size follows the cell count: 92×139 for one cell, 224×291 for five, from `layout()` in `ui/src/layout.ts`.
+`resizable: false`. The bubble window size follows the cell count, from `layout()` in `ui/src/layout.ts`:
+104×149 for one cell, 179×192 for two, 179×236 for three, 254×236 for four and 254×322 for five.
 The card is 420×470. Every resize keeps the top-left corner in place. On Hyprland the app moves the window back by PID after a resize, because Hyprland keeps the centre.
 
 ## Changes outside the new repo

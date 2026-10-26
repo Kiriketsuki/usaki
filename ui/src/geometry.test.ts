@@ -36,19 +36,20 @@ describe('hexPath', () => {
 });
 
 describe('cell rings', () => {
-  it('sizes a cell 88 px corner to corner', () => {
-    expect(2 * CELL_R).toBe(88);
-    expect(2 * CELL_APOTHEM).toBeCloseTo(76.2, 1);
+  it('sizes a cell 100 px corner to corner', () => {
+    expect(2 * CELL_R).toBe(100);
+    expect(2 * CELL_APOTHEM).toBeCloseTo(86.6, 1);
   });
 
-  it('puts the thick 5h ring outside the thin 7d ring with a 1 px gap', () => {
-    expect(FIVE_RING.sw).toBe(4);
-    expect(SEVEN_RING.sw).toBe(2);
-    expect(FIVE_RING.inner - SEVEN_RING.outer).toBeCloseTo(1, 9);
+  it('puts the 7d ring outside the 5h ring, both 3 px wide, with a 1.5 px gap', () => {
+    expect(SEVEN_RING.sw).toBe(3);
+    expect(FIVE_RING.sw).toBe(3);
+    expect(SEVEN_RING.outer).toBeGreaterThan(FIVE_RING.outer);
+    expect(SEVEN_RING.inner - FIVE_RING.outer).toBeCloseTo(1.5, 9);
   });
 
-  it('keeps the 5h ring 2 px inside the cell outline', () => {
-    expect(CELL_APOTHEM - FIVE_RING.outer).toBeCloseTo(2, 9);
+  it('keeps the 7d ring 1.5 px inside the cell outline', () => {
+    expect(CELL_APOTHEM - SEVEN_RING.outer).toBeCloseTo(1.5, 9);
   });
 
   it('draws each ring path on the middle of its stroke', () => {

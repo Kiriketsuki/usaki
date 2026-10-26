@@ -8,19 +8,22 @@ describe('left', () => {
   });
 
   it('shows minutes under an hour and rounds up', () => {
-    expect(left(47)).toBe('47m');
+    expect(left(33)).toBe('33m');
     expect(left(0.2)).toBe('1m');
+    expect(left(59.5)).toBe('1h00m');
   });
 
-  it('shows hours and padded minutes under a day', () => {
-    expect(left(133)).toBe('2h 13m');
-    expect(left(65)).toBe('1h 05m');
-    expect(left(60)).toBe('1h 00m');
+  it('shows hours and padded minutes under a day, with no space', () => {
+    expect(left(72)).toBe('1h12m');
+    expect(left(65)).toBe('1h05m');
+    expect(left(60)).toBe('1h00m');
+    expect(left(1439)).toBe('23h59m');
   });
 
-  it('shows days and hours from a day', () => {
-    expect(left(4 * 1440 + 6 * 60 + 20)).toBe('4d 6h');
-    expect(left(1440)).toBe('1d 0h');
+  it('shows days and padded hours from a day, with no space', () => {
+    expect(left(2 * 1440 + 4 * 60 + 20)).toBe('2d04h');
+    expect(left(1440)).toBe('1d00h');
+    expect(left(6 * 1440 + 23 * 60 + 59)).toBe('6d23h');
   });
 });
 

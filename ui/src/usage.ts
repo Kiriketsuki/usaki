@@ -29,21 +29,24 @@ export interface UsageUpdate {
 export interface WindowNow {
   pct: number;
   resetsAt: number | null;
+  /** True when no countdown runs: the window has no reset time, or its reset has passed. */
+  ready: boolean;
 }
 
 /**
  * Returns the window of `minutes` length at `now`, or null when the account has no such
  * window. A window whose reset time has passed has reset, so it reports 0%. This matches
- * Window::as_of in usaki-core, and it keeps the ring correct between two polls.
+ * Window::as_of in usaki-core, and it keeps the ring correct between two polls. Claude sends
+ * a null resets_at for a 5h window that has not started yet. Such a window also reports 0%.
  */
 export function windowAt(account: AccountView, minutes: number, now: number): WindowNow | null {
   const w = account.windows.find((x) => x.minutes === minutes);
   if (!w) return null;
-  const reset = w.resetsAt != null && w.resetsAt <= now;
-  return { pct: reset ? 0 : w.usedPct, resetsAt: w.resetsAt };
+  const ready = w.resetsAt == null || w.resetsAt <= now;
+  return { pct: ready ? 0 : w.usedPct, resetsAt: w.resetsAt, ready };
 }
 
-const NO_WINDOW: WindowNow = { pct: 0, resetsAt: null };
+const NO_WINDOW: WindowNow = { pct: 0, resetsAt: null, ready: true };
 
 /** Returns the 5h window of an account at `now`. A missing window reports 0%. */
 export function fiveHour(account: AccountView, now: number): WindowNow {

@@ -1,7 +1,9 @@
 // Draws a BubbleView into the markup of index.html. The ring and outline attributes are a
 // port of docs/design/mockup/Bubble.dc.html, drawn once per cell.
 
+import { READY } from './centre';
 import { ears } from './ears';
+import { ROW_SIZE } from './fit';
 import { APOTHEM, CELL_APOTHEM, CELL_R, FIVE_RING, type RingGeometry, SEVEN_RING, hexPath, ringDash } from './geometry';
 import type { BubbleView, CellView, RingView } from './model';
 
@@ -10,8 +12,9 @@ const TRACK = '#252836';
 const EDGE = 'rgba(255,255,255,0.12)';
 const HIGHLIGHT = '#e0e2ea';
 const HIGHLIGHT_SW = 1.5;
-/** The opacity of a stale cell. */
-const STALE_OPACITY = 0.45;
+/** The opacity of the rings and of the text of a stale cell. The text stays brighter, so it still reads. */
+const STALE_RINGS = 0.4;
+const STALE_TEXT = 0.6;
 
 function svg(tag: string, attrs: Record<string, string | number>): SVGElement {
   const el = document.createElementNS(SVG_NS, tag);
@@ -64,9 +67,9 @@ function ringNodes(c: CellView, g: RingGeometry, ring: RingView): SVGElement[] {
 }
 
 function cellNode(c: CellView): SVGElement {
-  const g = svg('g', { opacity: c.dim ? STALE_OPACITY : 1 });
+  const g = svg('g', { opacity: c.dim ? STALE_RINGS : 1 });
   g.append(svg('path', { d: hexPath(CELL_R, c.x, c.y), fill: 'none', stroke: EDGE, 'stroke-width': 1 }));
-  if (c.rings) g.append(...ringNodes(c, FIVE_RING, c.rings.five), ...ringNodes(c, SEVEN_RING, c.rings.seven));
+  if (c.rings) g.append(...ringNodes(c, SEVEN_RING, c.rings.seven), ...ringNodes(c, FIVE_RING, c.rings.five));
   return g;
 }
 
@@ -82,16 +85,21 @@ function highlightNode(c: CellView): SVGElement {
   });
 }
 
+// Each text item sits on its own point around the cell centre, so the rows share one
+// centre and each percent lines up with its countdown.
 function labelNode(c: CellView): HTMLElement {
   const el = html('div', 'cell-text');
   el.style.left = c.x + 'px';
   el.style.top = c.y + 'px';
-  el.style.transform = 'translate(-50%, calc(-50% + ' + c.fit.offset + 'px))';
-  if (c.dim) el.style.opacity = String(STALE_OPACITY);
+  if (c.dim) el.style.opacity = String(STALE_TEXT);
   el.append(
-    html('span', 'countdown', c.text.countdown),
-    html('span', 'name', c.fit.name),
-    html('span', 'figures', c.text.figures)
+    ...c.fit.items.map((item) => {
+      const span = html('span', item.role + (item.text === READY ? ' ready' : ''), item.text);
+      span.style.left = item.x + 'px';
+      span.style.top = item.y + 'px';
+      span.style.fontSize = ROW_SIZE[item.role] + 'px';
+      return span;
+    })
   );
   return el;
 }

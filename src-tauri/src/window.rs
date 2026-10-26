@@ -4,9 +4,9 @@ use tauri::WebviewWindow;
 
 /// The first bubble size: one hex cell plus the ears above it. It matches `layout(1)` in
 /// ui/src/layout.ts. The page then sets the size for the real cell count.
-pub const BUBBLE_WIDTH: i32 = 92;
+pub const BUBBLE_WIDTH: i32 = 104;
 /// See `BUBBLE_WIDTH`.
-pub const BUBBLE_HEIGHT: i32 = 139;
+pub const BUBBLE_HEIGHT: i32 = 149;
 
 /// The smallest and the largest size, in logical pixels, that the page may ask for.
 pub const MIN_SIZE: i32 = 32;
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn accepts_a_size_inside_the_bounds() {
-        assert_eq!(checked_size(92, 139), Ok((92, 139)));
+        assert_eq!(checked_size(104, 149), Ok((104, 149)));
         assert_eq!(checked_size(MIN_SIZE, MAX_SIZE), Ok((MIN_SIZE, MAX_SIZE)));
     }
 

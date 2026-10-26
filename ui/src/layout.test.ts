@@ -71,7 +71,7 @@ describe('layout', () => {
   }
 
   it('sizes the one cell window to match the Rust start size', () => {
-    expect([layout(1).width, layout(1).height]).toEqual([92, 139]);
+    expect([layout(1).width, layout(1).height]).toEqual([104, 149]);
   });
 
   it('gives zero accounts the one cell window', () => {
@@ -89,6 +89,11 @@ describe('layout', () => {
     expect(bottom.y - top.y).toBeCloseTo(STEP, 9);
     expect(right.x - top.x).toBeCloseTo(top.x - left.x, 9);
     expect(right.y).toBeCloseTo(left.y, 9);
+  });
+
+  it('sizes the window for each count from 1 to 5', () => {
+    const sizes = [1, 2, 3, 4, 5].map((n) => [layout(n).width, layout(n).height]);
+    expect(sizes).toEqual([[104, 149], [179, 192], [179, 236], [254, 236], [254, 322]]);
   });
 
   it('grows the window with the cell count', () => {

@@ -14,7 +14,11 @@ describe('bubbleView', () => {
       { five: { pct: 81, color: RUBY }, seven: { pct: 20, color: EMERALD } }
     ]);
     expect(view.cells.map((c) => c.text.name)).toEqual(['acc1', 'acc2']);
-    expect(view.cells[1].text).toEqual({ countdown: '47m', name: 'acc2', figures: '81/20%' });
+    expect(view.cells[1].text).toEqual({
+      name: 'acc2',
+      five: { pct: '81%', countdown: '47m' },
+      seven: { pct: '20%', countdown: '3d00h' }
+    });
     expect(view.ears).toBe('right');
     expect(view.dim).toBe(false);
   });
@@ -70,8 +74,21 @@ describe('bubbleView', () => {
   it('names the auto account in full in the label', () => {
     const view = bubbleView(update([account('longname12ch', 81, 47, false, 58)]), NOW);
     expect(view.label).toBe(
-      'AI usage. Next reset: longname12ch, 81% used in the 5 hour window, 58% used in the 7 day window. ' +
-        'The 5 hour window resets in 47m.'
+      'AI usage. Next reset: longname12ch. 5 hour window: 81% used, resets in 47m. ' +
+        '7 day window: 58% used, resets in 3d00h.'
     );
+  });
+
+  it('says ready in the label for an unused 5h window', () => {
+    const view = bubbleView(update([account('acc1', 0, null, false, 100, 90)]), NOW);
+    expect(view.label).toBe(
+      'AI usage. Next reset: acc1. 5 hour window: 0% used, ready. 7 day window: 100% used, resets in 1h30m.'
+    );
+  });
+
+  it('draws an unused 5h window as an empty ring, and a full 7d window as a full ring', () => {
+    const view = bubbleView(update([account('acc1', 0, null, false, 100, 90)]), NOW);
+    expect(view.cells[0].rings).toEqual({ five: { pct: 0, color: EMERALD }, seven: { pct: 100, color: RUBY } });
+    expect(view.ears).toBe('both');
   });
 });

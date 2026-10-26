@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellText, figures, pickAuto } from './centre';
+import { READY, cellText, pickAuto, windowText } from './centre';
 import { NOW, account } from './test-fixtures';
 import type { AccountView } from './usage';
 
@@ -26,37 +26,39 @@ describe('pickAuto', () => {
 });
 
 describe('cellText', () => {
-  it('shows the 5h countdown, the name and the 5h and 7d percent', () => {
-    expect(cellText(account('acc2', 81, 47, false, 58), NOW)).toEqual({
-      countdown: '47m',
+  it('shows the name, then the 5h and the 7d percent and countdown', () => {
+    expect(cellText(account('acc2', 33, 72, false, 58, 2 * 1440 + 4 * 60), NOW)).toEqual({
       name: 'acc2',
-      figures: '81/58%'
+      five: { pct: '33%', countdown: '1h12m' },
+      seven: { pct: '58%', countdown: '2d04h' }
     });
   });
 
   it('rounds both percents', () => {
-    expect(cellText(account('acc1', 41.6, 133, false, 57.5), NOW).figures).toBe('42/58%');
+    const t = cellText(account('acc1', 41.6, 133, false, 57.5), NOW);
+    expect([t.five.pct, t.seven.pct]).toEqual(['42%', '58%']);
   });
 
-  it('shows -- for an unknown reset', () => {
-    expect(cellText(account('acc1', 42, null), NOW).countdown).toBe('--');
+  it('shows ready and 0% for a 5h window with no reset time', () => {
+    expect(cellText(account('acc1', 0, null, false, 100), NOW).five).toEqual({ pct: '0%', countdown: READY });
+  });
+
+  it('shows ready and 0% for a window whose reset has passed', () => {
+    expect(cellText(account('acc1', 90, -1), NOW).five).toEqual({ pct: '0%', countdown: READY });
+  });
+
+  it('shows a full 7d window as 100% with its countdown', () => {
+    expect(cellText(account('acc1', 0, null, false, 100, 30), NOW).seven).toEqual({ pct: '100%', countdown: '30m' });
   });
 });
 
-describe('figures', () => {
+describe('windowText', () => {
   it('shows -- for a missing window', () => {
-    const a = account('acc1', 42, 133);
-    const no7d: AccountView = { ...a, windows: a.windows.filter((w) => w.minutes === 300) };
-    expect(figures(no7d, NOW)).toBe('42/--%');
-    expect(figures({ ...a, windows: [] }, NOW)).toBe('--/--%');
+    expect(windowText(null, NOW)).toEqual({ pct: '--', countdown: '--' });
   });
 
-  it('shows 0 for a 7d window whose reset has passed', () => {
-    const a = account('acc1', 42, 133, false, 90);
-    const past: AccountView = {
-      ...a,
-      windows: a.windows.map((w) => (w.minutes === 10080 ? { ...w, resetsAt: NOW - 1 } : w))
-    };
-    expect(figures(past, NOW)).toBe('42/0%');
+  it('shows the countdown under a day in hours and minutes', () => {
+    const a: AccountView = account('acc1', 20, 10, false, 50, 23 * 60 + 59);
+    expect(cellText(a, NOW).seven.countdown).toBe('23h59m');
   });
 });

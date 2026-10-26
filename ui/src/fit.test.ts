@@ -1,56 +1,79 @@
 import { describe, expect, it } from 'vitest';
 import { NO_DATA } from './centre';
-import { TEXT_LIMIT, cellLines, fitCell, lineNorms } from './fit';
-import { CELL_APOTHEM, SEVEN_RING } from './geometry';
+import { COL_X, TEXT_LIMIT, cellItems, fitCell, itemHalfWidth, itemNorm } from './fit';
+import { CELL_APOTHEM, FIVE_RING } from './geometry';
 
-const text = (name: string, countdown = '2h 13m', figures = '81/58%') => ({ countdown, name, figures });
+const text = (name: string, fiveCd = '1h12m', sevenCd = '2d04h', fivePct = '33%', sevenPct = '33%') => ({
+  name,
+  five: { pct: fivePct, countdown: fiveCd },
+  seven: { pct: sevenPct, countdown: sevenCd }
+});
+
+describe('cellItems', () => {
+  it('puts the 5h items on the left, the 7d items on the right and the name in the middle', () => {
+    const items = cellItems(text('acc1'));
+    const at = (t: string) => items.find((i) => i.text === t);
+    expect(items.filter((i) => i.x < 0).map((i) => i.text)).toEqual(['33%', '1h12m']);
+    expect(items.filter((i) => i.x > 0).map((i) => i.text)).toEqual(['33%', '2d04h']);
+    expect(at('acc1')).toMatchObject({ role: 'name', x: 0 });
+  });
+
+  it('lines each percent up with its countdown on fixed columns', () => {
+    const items = cellItems(text('acc1'));
+    expect(new Set(items.filter((i) => i.role !== 'name').map((i) => Math.abs(i.x)))).toEqual(new Set([COL_X]));
+  });
+
+  it('stacks the rows percent, name, countdown on the cell centre', () => {
+    const items = cellItems(text('acc1'));
+    const y = (role: string) => items.find((i) => i.role === role)?.y ?? NaN;
+    expect(y('pct')).toBeLessThan(y('name'));
+    expect(y('name')).toBeLessThan(y('countdown'));
+    expect(Math.abs(y('pct') + y('countdown'))).toBeLessThan(2);
+  });
+});
 
 describe('fitCell', () => {
-  it('keeps a short name whole and the block centred', () => {
-    expect(fitCell(text('acc1'))).toEqual({ name: 'acc1', offset: 0 });
+  it('keeps a short name whole', () => {
+    expect(fitCell(text('acc1')).name).toBe('acc1');
   });
 
-  it('keeps a 12 character name whole', () => {
-    expect(fitCell(text('longname12ch')).name).toBe('longname12ch');
+  it('keeps a 12 character name whole with the widest normal figures', () => {
+    expect(fitCell(text('longname12ch', '4h59m', '23h59m', '100%', '100%')).name).toBe('longname12ch');
   });
 
-  it('cuts a longer name with an ellipsis and keeps the other lines whole', () => {
+  it('cuts a longer name with an ellipsis and keeps the figures whole', () => {
     const fit = fitCell(text('averylongname20chars'));
     expect(fit.name).toMatch(/^averylong\w*…$/);
-    expect(fit.name.length).toBeLessThan(20);
+    expect(fit.items.map((i) => i.text)).toContain('2d04h');
   });
 
-  it('never puts a line outside the 7d ring', () => {
+  it('never puts an item outside the 5h ring, and never lets two columns touch', () => {
     const names = ['a', 'acc3', 'kiriket', 'longname12ch', 'averylongname20chars'];
-    const countdowns = ['now', '47m', '4h 59m', '--'];
-    const figs = ['0/0%', '81/58%', '100/100%', '--/--%'];
+    const fives = ['ready', '33m', '4h59m', '--'];
+    const sevens = ['ready', '33m', '23h59m', '6d23h', '--'];
+    const pcts = ['0%', '33%', '100%', '--'];
     for (const name of names) {
-      for (const countdown of countdowns) {
-        for (const figures of figs) {
-          const t = text(name, countdown, figures);
-          const fit = fitCell(t);
-          const norms = lineNorms(cellLines({ ...t, name: fit.name }), fit.offset);
-          expect(Math.max(...norms)).toBeLessThanOrEqual(TEXT_LIMIT);
+      for (const f of fives) {
+        for (const s of sevens) {
+          for (const p of pcts) {
+            const fit = fitCell(text(name, f, s, p, p));
+            fit.items.forEach((i) => expect(itemNorm(i)).toBeLessThanOrEqual(TEXT_LIMIT));
+            for (const role of ['pct', 'countdown']) {
+              const [l, r] = fit.items.filter((i) => i.role === role);
+              expect(r.x - itemHalfWidth(r) - (l.x + itemHalfWidth(l))).toBeGreaterThanOrEqual(2);
+            }
+          }
         }
       }
     }
   });
 
-  it('keeps the text limit inside the 7d ring and the cell', () => {
-    expect(TEXT_LIMIT).toBeLessThan(SEVEN_RING.inner);
+  it('keeps the text limit inside the 5h ring and the cell', () => {
+    expect(TEXT_LIMIT).toBeLessThan(FIVE_RING.inner);
     expect(TEXT_LIMIT).toBeLessThan(CELL_APOTHEM);
   });
 
   it('fits the no data text whole', () => {
     expect(fitCell(NO_DATA).name).toBe('no data');
-  });
-});
-
-describe('lineNorms', () => {
-  it('grows with the line length and with the distance from the centre', () => {
-    const short = lineNorms(cellLines(text('a')));
-    const long = lineNorms(cellLines(text('longname12ch')));
-    expect(long[1]).toBeGreaterThan(short[1]);
-    expect(lineNorms(cellLines(text('a')), -4)[2]).toBeLessThan(short[2]);
   });
 });

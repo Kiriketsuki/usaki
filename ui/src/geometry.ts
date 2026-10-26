@@ -3,8 +3,11 @@
 
 /** The ratio of the apothem (centre to edge) to the radius (centre to corner) of a hexagon. */
 export const APOTHEM = 0.866;
-/** The radius of one cell, centre to corner. A cell is 88 px corner to corner, 76 px flat to flat. */
-export const CELL_R = 44;
+/**
+ * The radius of one cell, centre to corner. A cell is 100 px corner to corner, 87 px flat to
+ * flat. A smaller cell cannot hold a 6 character 7d countdown, such as 23h59m, inside the 5h ring.
+ */
+export const CELL_R = 50;
 /** The apothem of one cell. */
 export const CELL_APOTHEM = CELL_R * APOTHEM;
 
@@ -48,20 +51,19 @@ export interface RingGeometry {
   inner: number;
 }
 
-/** The apothem of the outer edge of the 5h ring. It keeps 2 px clear of the cell outline. */
-export const RING_OUTER = CELL_APOTHEM - 2;
-/** The 5h ring stroke, the gap, and the 7d ring stroke, in px. */
-export const FIVE_SW = 4;
-export const RING_GAP = 1;
-export const SEVEN_SW = 2;
+/** The apothem of the outer edge of the outer ring. It keeps 1.5 px clear of the cell outline. */
+export const RING_OUTER = CELL_APOTHEM - 1.5;
+/** Both rings have the same stroke, so neither reads as the cell outline. The gap is in px too. */
+export const RING_SW = 3;
+export const RING_GAP = 1.5;
 
 function ring(outer: number, sw: number): RingGeometry {
   return { r: (outer - sw / 2) / APOTHEM, sw, outer, inner: outer - sw };
 }
 
-/** The thick 5h ring outside and the thin 7d ring just inside it. Every cell uses the same pair. */
-export const FIVE_RING = ring(RING_OUTER, FIVE_SW);
-export const SEVEN_RING = ring(FIVE_RING.inner - RING_GAP, SEVEN_SW);
+/** The 7d ring is the outer ring and the 5h ring the inner ring, as the user asked. */
+export const SEVEN_RING = ring(RING_OUTER, RING_SW);
+export const FIVE_RING = ring(SEVEN_RING.inner - RING_GAP, RING_SW);
 
 /** The stroke-dasharray of a ring with pathLength 100. It clamps pct to 0..100. */
 export function ringDash(pct: number): string {

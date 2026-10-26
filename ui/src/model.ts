@@ -1,20 +1,11 @@
 // Turns the backend data into what the bubble draws. It holds no DOM code.
 
-import { type CellText, NO_DATA, cellText, pickAuto } from './centre';
+import { type CellText, NO_DATA, READY, type WindowText, cellText, pickAuto } from './centre';
 import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
 import { type EarState, earState } from './ears';
 import { type CellFit, fitCell } from './fit';
 import { type Layout, layout } from './layout';
-import {
-  type AccountView,
-  FIVE_HOUR_MINUTES,
-  SEVEN_DAY_MINUTES,
-  type UsageUpdate,
-  type WindowNow,
-  fiveHour,
-  sevenDay,
-  windowAt
-} from './usage';
+import { type AccountView, type UsageUpdate, fiveHour, sevenDay } from './usage';
 
 export interface RingView {
   pct: number;
@@ -47,21 +38,20 @@ function ringView(pct: number, thresholds: Thresholds): RingView {
   return { pct, color: tone(pct, thresholds) };
 }
 
-function spoken(w: WindowNow | null): string {
-  return w ? Math.round(w.pct) + '%' : 'no data';
+function spoken(w: WindowText): string {
+  if (w.pct === '--') return 'no data';
+  if (w.countdown === READY) return w.pct + ' used, ready';
+  return w.pct + ' used, resets in ' + w.countdown;
 }
 
 // The label carries the full account name, so a screen reader hears it even when the
 // fit cuts it on screen.
 function ariaLabel(shown: AccountView | null, now: number): string {
   if (!shown) return 'AI usage. No fresh data.';
-  const five = fiveHour(shown, now);
-  const reset = five.resetsAt == null ? 'at an unknown time' : 'in ' + cellText(shown, now).countdown;
+  const t = cellText(shown, now);
   return (
-    'AI usage. Next reset: ' + shown.id + ', ' +
-    spoken(windowAt(shown, FIVE_HOUR_MINUTES, now)) + ' used in the 5 hour window, ' +
-    spoken(windowAt(shown, SEVEN_DAY_MINUTES, now)) + ' used in the 7 day window. ' +
-    'The 5 hour window resets ' + reset + '.'
+    'AI usage. Next reset: ' + t.name + '. 5 hour window: ' + spoken(t.five) +
+    '. 7 day window: ' + spoken(t.seven) + '.'
   );
 }
 
@@ -71,7 +61,7 @@ function noDataCell(at: { x: number; y: number }): CellView {
 
 /**
  * Returns the bubble at `now`: one hex cell per account, in account order, tiled into one
- * cluster. Each cell has a thick 5h ring and a thin 7d ring inside it.
+ * cluster. Each cell has a 7d ring outside and a 5h ring inside it.
  */
 export function bubbleView(
   update: UsageUpdate | null,
