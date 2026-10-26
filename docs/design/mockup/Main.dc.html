@@ -55,8 +55,8 @@ a{color:#20969c}a:hover{color:#FCC96A}
   </div>
 
   <sc-if value="{{collapsed}}" hint-placeholder-val="{{ true }}">
-    <button type="button" data-drag="1" data-toggle="1" onClick="{{keyToggle}}" onContextMenu="{{cycle}}" onAuxClick="{{auto}}" aria-label="{{bubbleLabel}}" style="position: absolute; left: {{px}}px; top: {{py}}px; width: 152px; height: 152px; padding: 0; margin: 0; border: 0; background: none; cursor: grab;">
-      <dc-import name="Bubble" rings="{{rings}}" top="{{top}}" centre="{{centre}}" sub="{{sub}}" hint-size="152px,152px"></dc-import>
+    <button type="button" data-drag="1" data-toggle="1" onClick="{{keyToggle}}" onContextMenu="{{cycle}}" onAuxClick="{{auto}}" aria-label="{{bubbleLabel}}" style="position: absolute; left: {{px}}px; top: {{py}}px; width: 152px; height: 188px; padding: 0; margin: 0; border: 0; background: none; cursor: grab;">
+      <dc-import name="Bubble" rings="{{rings}}" ears="{{ears}}" top="{{top}}" centre="{{centre}}" sub="{{sub}}" hint-size="152px,188px"></dc-import>
     </button>
   </sc-if>
 
@@ -70,7 +70,9 @@ a{color:#20969c}a:hover{color:#FCC96A}
 <script type="text/x-dc" data-dc-script data-props='{"ringWindow":{"editor":"enum","options":["5h","7d","worst"],"default":"5h","section":"Bubble"},"startExpanded":{"editor":"boolean","default":false,"section":"Bubble"},"$preview":{"width":1280,"height":800}}'>
 const W = 1280;
 const H = 800;
-const BUBBLE = 152;
+// The bubble is the 152 px hex plus a 36 px band for the ears above it.
+const BUBBLE_W = 152;
+const BUBBLE_H = 188;
 const CARD_W = 420;
 const CARD_H = 470;
 const TOP = 36;
@@ -116,7 +118,7 @@ class Component extends DCLogic {
   componentWillUnmount() { clearInterval(this.timer); }
 
   isOpen() { return this.state.open ?? (this.props.startExpanded ?? false); }
-  dims() { return this.isOpen() ? [CARD_W, CARD_H] : [BUBBLE, BUBBLE]; }
+  dims() { return this.isOpen() ? [CARD_W, CARD_H] : [BUBBLE_W, BUBBLE_H]; }
   toggle() { this.setState({ open: !this.isOpen() }); }
 
   renderVals() {
@@ -133,7 +135,7 @@ class Component extends DCLogic {
         rows: a.stale ? 'opacity: 0.5' : 'opacity: 1',
         windows: [
           { name: '5h', pct: a.five.pct, color: tone(a.five.pct), left: left(r5), at: at(this.t0 + a.five.mins * 60000, false) },
-          { name: '7d', pct: a.week.pct, color: tone(a.week.pct), left: left(r7), at: at(this.t0 + a.week.mins * 60000, true) }
+          { name: '7d', pct: a.week.pct, color: tone(a.week.pct), left: left(r7), at: at(this.t0 + a.week.mins * 60000, true), weekMins: r7 }
         ],
         r5: r5
       };
@@ -150,9 +152,15 @@ class Component extends DCLogic {
       return { pct: p, color: tone(p), dim: !!a.stale || (pin != null && i !== pin) };
     });
 
+    // The ears follow the rings of the live accounts. A full ring folds both
+    // ears, a ring at 75% or more folds one, and no live account folds both.
+    const liveRings = rings.filter((g, i) => !BASE[i].stale);
+    const ears = liveRings.length === 0 || liveRings.some((g) => g.pct >= 100) ? 'both'
+      : liveRings.some((g) => g.pct >= 75) ? 'one' : 'up';
+
     const top = !shown ? '' : shown.isStale ? 'stale ' + shown.stale : pin == null ? 'next 5h' : '5h reset';
 
-    const [w, h] = open ? [CARD_W, CARD_H] : [BUBBLE, BUBBLE];
+    const [w, h] = this.dims();
     const x = clamp(this.state.x, 0, W - w);
     const y = clamp(this.state.y, TOP, H - h);
     return {
@@ -161,6 +169,7 @@ class Component extends DCLogic {
       collapsed: !open,
       expanded: open,
       rings: rings,
+      ears: ears,
       top: top,
       centre: shown ? left(shown.r5) : '--',
       sub: shownBase ? shownBase.short + ' · ' + shownBase.five.pct + '%' : 'offline',

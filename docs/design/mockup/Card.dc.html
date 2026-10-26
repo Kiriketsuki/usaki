@@ -19,7 +19,15 @@ body{margin:0}
 
     <div data-drag="1" style="display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 4px; cursor: grab; border-bottom: 1px solid #363a4f;">
       <button type="button" data-toggle="1" onClick="{{collapse}}" aria-label="Collapse to bubble" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; border: 0; background: none; color: #FBB13C; cursor: pointer;">
-        <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><path d="M5 1 L15 1 L19 9 L15 17 L5 17 L1 9 Z" fill="none" stroke="currentColor" stroke-width="2"></path><path d="M7.5 5 L12.5 5 L14.5 9 L12.5 13 L7.5 13 L5.5 9 Z" fill="currentColor"></path></svg>
+        <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true">
+          <polygon points="14,12 13,0 18,2 18,11" fill="#583090"></polygon>
+          <polygon points="10,13 5,1 10,1 16,11" fill="#1c3d7a"></polygon>
+          <polygon points="7.5,5 9.5,3 13.5,11 11.5,12" fill="#1a8a6a"></polygon>
+          <polygon points="6,15 16,10 24,14 17,19" fill="#1a8a6a"></polygon>
+          <polygon points="6,15 17,19 14,29 4,24" fill="#1c3d7a"></polygon>
+          <polygon points="17,19 24,14 31,22 27,27 14,29" fill="#583090"></polygon>
+          <polygon points="20,15.5 22.5,17.5 20,19.5 17.5,17.5" fill="#FBB13C"></polygon>
+        </svg>
       </button>
       <span style="font-size: 14px; font-weight: 600; color: #e0e2ea;">AI usage</span>
       <span style="flex-grow: 1;"></span>
@@ -45,12 +53,20 @@ body{margin:0}
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px; {{acct.rows}};">
           <sc-for list="{{acct.windows}}" as="w" hint-placeholder-count="2">
-            <div style="display: grid; grid-template-columns: 24px minmax(0, 1fr) 40px 128px; gap: 10px; align-items: center; font-family: 'Fira Code', monospace; font-size: 12px;">
+            <div style="display: grid; grid-template-columns: 24px minmax(0, 1fr) 40px 12px 128px; gap: 10px; align-items: center; font-family: 'Fira Code', monospace; font-size: 12px;">
               <span style="color: #a0a4b8; font-size: 11px;">{{w.name}}</span>
               <div style="height: 8px; background: #252836; box-shadow: inset 0 0 0 1px #363a4f;">
                 <div style="width: {{w.pct}}%; height: 100%; background: {{w.color}};"></div>
               </div>
               <span style="text-align: right; color: #e0e2ea;">{{w.pct}}%</span>
+              <span style="display: flex; width: 12px; height: 12px;">
+                <sc-if value="{{w.hasMoon}}" hint-placeholder-val="{{ false }}">
+                  <svg width="12" height="12" viewBox="0 0 12 12" role="img" aria-label="{{w.moonLabel}}">
+                    <path d="{{w.moonDisc}}" fill="#252836" stroke="#363a4f" stroke-width="1"></path>
+                    <path d="{{w.moonLit}}" fill="#e0e2ea"></path>
+                  </svg>
+                </sc-if>
+              </span>
               <span style="color: #e0e2ea; white-space: nowrap;">↻ {{w.left}} <span style="color: #a0a4b8;">{{w.at}}</span></span>
             </div>
           </sc-for>
@@ -65,29 +81,75 @@ const SAMPLE = [
   { id: 'a1', label: 'Account 1', plan: 'Plan A', color: '#d47622', stale: '', isStale: false, rows: 'opacity: 1',
     windows: [
       { name: '5h', pct: 42, color: '#1a8a6a', left: '2h 13m', at: '16:40' },
-      { name: '7d', pct: 31, color: '#1a8a6a', left: '4d 6h', at: 'Tue 20:47' }
+      { name: '7d', pct: 31, color: '#1a8a6a', left: '4d 6h', at: 'Tue 20:47', weekMins: 6120 }
     ] },
   { id: 'a2', label: 'Account 2', plan: 'Plan B', color: '#d47622', stale: '', isStale: false, rows: 'opacity: 1',
     windows: [
       { name: '5h', pct: 81, color: '#e06a78', left: '47m', at: '15:14' },
-      { name: '7d', pct: 58, color: '#FBB13C', left: '1d 9h', at: 'Sat 23:27' }
+      { name: '7d', pct: 58, color: '#FBB13C', left: '1d 9h', at: 'Sat 23:27', weekMins: 1980 }
     ] },
   { id: 'a3', label: 'Account 3', plan: 'Plan C', color: '#20969c', stale: '', isStale: false, rows: 'opacity: 1',
     windows: [
       { name: '5h', pct: 18, color: '#1a8a6a', left: '3h 02m', at: '17:29' },
-      { name: '7d', pct: 29, color: '#1a8a6a', left: '2d 3h', at: 'Sun 17:27' }
+      { name: '7d', pct: 29, color: '#1a8a6a', left: '2d 3h', at: 'Sun 17:27', weekMins: 3060 }
     ] },
   { id: 'a4', label: 'Account 4', plan: 'Plan D', color: '#3d95e0', stale: '3h', isStale: true, rows: 'opacity: 0.5',
     windows: [
       { name: '5h', pct: 9, color: '#1a8a6a', left: '4h 11m', at: '18:38' },
-      { name: '7d', pct: 12, color: '#1a8a6a', left: '5d 0h', at: 'Wed 14:27' }
+      { name: '7d', pct: 12, color: '#1a8a6a', left: '5d 0h', at: 'Wed 14:27', weekMins: 7200 }
     ] }
 ];
 
+// The 7d window lasts 10080 minutes.
+const WEEK_MINS = 10080;
+const MOON_R = 5;
+const MOON_C = 6;
+
+// The fraction of the 7d window that has passed. The moon is new (0) just
+// after a reset and full (1) at the next reset.
+function moonPhase(minsLeft) {
+  return Math.max(0, Math.min(1, 1 - minsLeft / WEEK_MINS));
+}
+
+// The whole moon disc, drawn as two half arcs.
+function moonDisc() {
+  const top = MOON_C + ' ' + (MOON_C - MOON_R);
+  const bot = MOON_C + ' ' + (MOON_C + MOON_R);
+  return 'M ' + top + ' A ' + MOON_R + ' ' + MOON_R + ' 0 0 1 ' + bot +
+    ' A ' + MOON_R + ' ' + MOON_R + ' 0 0 1 ' + top + ' Z';
+}
+
+// The lit part of a waxing moon. The right half arc is the limb. The
+// terminator is a half ellipse with x radius r * |1 - 2f|. It bulges right
+// (a crescent) under half and bulges left (gibbous) over half.
+function moonLit(f) {
+  const top = MOON_C + ' ' + (MOON_C - MOON_R);
+  const bot = MOON_C + ' ' + (MOON_C + MOON_R);
+  const rx = (MOON_R * Math.abs(1 - 2 * f)).toFixed(2);
+  const sweep = f < 0.5 ? 0 : 1;
+  return 'M ' + top + ' A ' + MOON_R + ' ' + MOON_R + ' 0 0 1 ' + bot +
+    ' A ' + rx + ' ' + MOON_R + ' 0 0 ' + sweep + ' ' + top + ' Z';
+}
+
+// A window gets a moon when it carries weekMins, the minutes left until its
+// 7d reset. The 5h rows have no weekMins and show an empty cell.
+function withMoon(w) {
+  if (typeof w.weekMins !== 'number') return { ...w, hasMoon: false, moonDisc: '', moonLit: '', moonLabel: '' };
+  const f = moonPhase(w.weekMins);
+  return {
+    ...w,
+    hasMoon: true,
+    moonDisc: moonDisc(),
+    moonLit: f <= 0 ? '' : moonLit(f),
+    moonLabel: 'Moon ' + Math.round(f * 100) + '% full, 7d reset in ' + w.left
+  };
+}
+
 class Component extends DCLogic {
   renderVals() {
+    const accounts = (this.props.accounts ?? SAMPLE).map((a) => ({ ...a, windows: a.windows.map(withMoon) }));
     return {
-      accounts: this.props.accounts ?? SAMPLE,
+      accounts: accounts,
       updated: this.props.updated ?? 'updated 2m ago',
       // A pointer click reaches the importer through data-toggle. A keyboard
       // press has e.detail 0, so only that case calls onCollapse here.

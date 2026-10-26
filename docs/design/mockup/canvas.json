@@ -7,8 +7,8 @@
   "boards": {
     "Main.dc.html": {"x": 0, "y": 0, "w": 1280, "h": 800, "title": "Desktop prototype: drag the bubble, click to expand", "is_interactive": true},
     "Card.dc.html": {"x": 1360, "y": 0, "w": 420, "h": 470, "title": "Expanded card"},
-    "Bubble.dc.html": {"x": 1860, "y": 0, "w": 152, "h": 152, "title": "Bubble"},
-    "States.dc.html": {"x": 0, "y": 920, "w": 1280, "h": 360, "title": "Bubble states"},
+    "Bubble.dc.html": {"x": 1860, "y": 0, "w": 152, "h": 188, "title": "Bubble"},
+    "States.dc.html": {"x": 0, "y": 920, "w": 1280, "h": 420, "title": "Bubble states"},
     "Settings.dc.html": {"x": 1360, "y": 920, "w": 960, "h": 1240, "title": "Settings", "expand": "fill"}
   },
   "order": ["Main.dc.html", "Card.dc.html", "Bubble.dc.html", "States.dc.html", "Settings.dc.html"],
