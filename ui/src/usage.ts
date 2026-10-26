@@ -78,6 +78,18 @@ export function sevenDay(account: AccountView, now: number): WindowNow {
  * cell then has no 5h ring, the 5h slots show `--`, and the head rule ranks the account last.
  */
 export function weekOnly(account: AccountView): boolean {
-  const has = (minutes: number) => account.windows.some((w) => w.minutes === minutes);
-  return has(SEVEN_DAY_MINUTES) && !has(FIVE_HOUR_MINUTES);
+  return hasWindow(account, SEVEN_DAY_MINUTES) && !hasWindow(account, FIVE_HOUR_MINUTES);
+}
+
+/** True when the account has a window of `minutes` length. */
+export function hasWindow(account: AccountView, minutes: number): boolean {
+  return account.windows.some((w) => w.minutes === minutes);
+}
+
+/**
+ * True for an account with neither a 5h nor a 7d window, such as a Codex home whose logs
+ * hold no rate limit event yet. The cell and the card then show `no data`.
+ */
+export function noData(account: AccountView): boolean {
+  return !hasWindow(account, FIVE_HOUR_MINUTES) && !hasWindow(account, SEVEN_DAY_MINUTES);
 }

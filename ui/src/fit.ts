@@ -8,7 +8,7 @@
 // bottom row holds the 5h countdown on the left and the 7d countdown on the right. The two
 // columns sit at fixed x, so each percent lines up with its countdown.
 
-import { type CellText } from './centre';
+import { type CellText, NO_DATA_TEXT } from './centre';
 import { APOTHEM, FIVE_RING } from './geometry';
 
 /** The advance of one Fira Code glyph, as a fraction of the font size. */
@@ -64,10 +64,13 @@ function markLead(text: CellText): number {
  */
 export function cellItems(text: CellText, name = text.name): TextItem[] {
   const y = rowY();
+  const nameItem: TextItem = { text: name, role: 'name', x: markLead(text) / 2, y: y.name };
+  // An account with no window shows `no data` on the countdown row, with no percent.
+  if (text.noData) return [nameItem, { text: NO_DATA_TEXT, role: 'countdown', x: 0, y: y.countdown }];
   return [
     { text: text.five.pct, role: 'pct', x: -COL_X, y: y.pct },
     { text: text.seven.pct, role: 'pct', x: COL_X, y: y.pct },
-    { text: name, role: 'name', x: markLead(text) / 2, y: y.name },
+    nameItem,
     { text: text.five.countdown, role: 'countdown', x: -COL_X, y: y.countdown },
     { text: text.seven.countdown, role: 'countdown', x: COL_X, y: y.countdown }
   ];

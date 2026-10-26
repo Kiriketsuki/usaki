@@ -10,6 +10,7 @@ import {
   SEVEN_DAY_MINUTES,
   type WindowNow,
   fiveHour,
+  noData,
   sevenDay,
   weekOnly,
   windowAt
@@ -29,6 +30,8 @@ export interface CellText {
   /** The provider of the name mark, or null for a cell with no account. */
   provider: ProviderName | null;
   name: string;
+  /** True for an account with no 5h and no 7d window. The cell then shows `no data` under the name. */
+  noData: boolean;
   five: WindowText;
   seven: WindowText;
 }
@@ -39,7 +42,10 @@ export const READY = 'ready';
 const MISSING: WindowText = { pct: '--', countdown: '--' };
 
 /** The text of the one cell that shows when no account exists. */
-export const NO_DATA: CellText = { provider: null, name: 'no data', five: MISSING, seven: MISSING };
+export const NO_DATA: CellText = { provider: null, name: 'no data', noData: false, five: MISSING, seven: MISSING };
+
+/** The text under the name of an account with no window. */
+export const NO_DATA_TEXT = 'no data';
 
 /** The text of one window. A missing window shows `--`. A ready window shows 0% and `ready`. */
 export function windowText(w: WindowNow | null, now: number): WindowText {
@@ -55,6 +61,7 @@ export function cellText(account: AccountView, now: number): CellText {
   return {
     provider: account.provider,
     name: account.name,
+    noData: noData(account),
     five: windowText(windowAt(account, FIVE_HOUR_MINUTES, now), now),
     seven: windowText(windowAt(account, SEVEN_DAY_MINUTES, now), now)
   };
@@ -64,9 +71,10 @@ export function cellText(account: AccountView, now: number): CellText {
 type Rank = readonly [number, number];
 
 // An account with a 5h window ranks by its 5h reset. A 7d-only account ranks after every
-// account with a 5h window, by its 7d reset. A reset that has passed or that is not known
-// cannot be the next reset, so it sorts last in its tier.
+// account with a 5h window, by its 7d reset. An account with no window ranks last. A reset
+// that has passed or that is not known cannot be the next reset, so it sorts last in its tier.
 function rank(account: AccountView, now: number): Rank {
+  if (noData(account)) return [2, Number.POSITIVE_INFINITY];
   const week = weekOnly(account);
   const at = (week ? sevenDay : fiveHour)(account, now).resetsAt;
   return [week ? 1 : 0, at != null && at > now ? at : Number.POSITIVE_INFINITY];

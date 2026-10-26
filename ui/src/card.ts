@@ -11,7 +11,9 @@ import {
   type Credits,
   FIVE_HOUR_MINUTES,
   SEVEN_DAY_MINUTES,
+  type ProviderName,
   type UsageUpdate,
+  noData,
   weekOnly,
   windowAt
 } from './usage';
@@ -59,14 +61,18 @@ export interface AccountRow {
   id: string;
   /** The account name that the title shows. */
   name: string;
-  /** The colour of the hex dot: the provider accent from PROVIDER_COLOUR. */
-  dot: string;
+  /** The provider. The title shows its mark, the same polygon as the cell mark. */
+  provider: ProviderName;
+  /** The colour of the mark: the provider accent from PROVIDER_COLOUR. */
+  colour: string;
   /** `next 5h` or `next 7d` on the auto head, `pinned` on a pinned head, else null. */
   tag: string | null;
   /** `stale 3h` for a stale account, else null. The rows then dim. */
   stale: string | null;
   /** The 5h row and the 7d row. A 7d-only account has the 7d row only. */
   windows: WindowRow[];
+  /** True for an account with no 5h and no 7d window. The block then shows one `no data` line. */
+  noData: boolean;
   /** The credits balance as the provider gives it, `unlimited`, or null for no credits row. */
   credits: string | null;
   /** The block height in px. */
@@ -120,16 +126,28 @@ export function staleText(account: AccountView, now: number): string | null {
 }
 
 function headTag(head: Head): string | null {
-  if (head.mode === 'auto' && head.account) return weekOnly(head.account) ? 'next 7d' : 'next 5h';
+  if (head.mode === 'auto' && head.account) {
+    if (noData(head.account)) return null;
+    return weekOnly(head.account) ? 'next 7d' : 'next 5h';
+  }
   if (head.mode === 'pinned') return 'pinned';
   return null;
 }
 
-/** Returns the text of the credits row, or null when the account reports no credits. */
+const BALANCE_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Returns the text of the credits row, or null when the account reports no credits. The
+ * balance shows with 2 decimals and thousands separators, such as `21,690.58`. The logs do
+ * not name the unit, so the text adds none. A balance that is not a number shows as given.
+ */
 export function creditsText(credits: Credits | null): string | null {
   if (!credits) return null;
   if (credits.unlimited) return 'unlimited';
-  return credits.balance;
+  const balance = credits.balance?.trim();
+  if (!balance) return null;
+  const n = Number(balance);
+  return Number.isFinite(n) ? BALANCE_FORMAT.format(n) : balance;
 }
 
 /** Returns `updated 2m ago` from the newest data of any account that was read. */
@@ -154,18 +172,23 @@ export function cardView(
   const accounts = update?.accounts ?? [];
   const head = pickHead(accounts, pin, now);
   const rows = accounts.map((a): AccountRow => {
-    const minutes = weekOnly(a) ? [SEVEN_DAY_MINUTES] : [FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES];
+    const empty = noData(a);
+    const minutes = empty ? [] : weekOnly(a) ? [SEVEN_DAY_MINUTES] : [FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES];
     const windows = minutes.map((m) => windowRow(a, m, now, thresholds, timeZone));
     const credits = creditsText(a.credits);
+    // An account with no window has one `no data` line in place of the window rows.
+    const lines = (empty ? 1 : windows.length) + (credits == null ? 0 : 1);
     return {
       id: a.id,
       name: a.name,
-      dot: PROVIDER_COLOUR[a.provider],
+      provider: a.provider,
+      colour: PROVIDER_COLOUR[a.provider],
       tag: a === head.account ? headTag(head) : null,
       stale: staleText(a, now),
       windows,
+      noData: empty,
       credits,
-      height: blockHeight(windows.length + (credits == null ? 0 : 1))
+      height: blockHeight(lines)
     };
   });
   return { updated: updatedText(accounts, now), rows, ...cardSize(rows.map((r) => r.height)) };

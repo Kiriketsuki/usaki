@@ -28,13 +28,15 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
   A name longer than 10 characters ends in an ellipsis. The provider mark takes the space of two characters.
   The head, the auto account (earliest 5h reset) or the pinned account, gets a bright outline. A stale cell dims.
 - **Provider marks (issue #19):** each cell shows a small filled polygon before the name. Claude has a starburst in its
-  brand terracotta `#D97757` and Codex a teal `#20969c` chevron. `PROVIDER_COLOUR` in `ui/src/marks.ts` holds both accents. The shape names the provider without colour. The rings keep the usage tones.
+  brand terracotta `#D97757` and Codex a teal `#20969c` chevron. `PROVIDER_COLOUR` in `ui/src/marks.ts` holds both accents.
+  The card title shows the same mark in place of the hex dot. The shape names the provider without colour. The rings keep the usage tones.
   The account id is `<provider>:<name>`, so a Claude account and a Codex account with the same name never merge. Pins use this id.
   The body lists the Claude accounts first, then the Codex accounts, each by name.
 - **7d-only accounts (issue #19):** Codex on the Pro plan reports only the 7d window. Its cell draws the 5h track as a dotted
   empty track with no arc and no notch, and its 5h slots show `--`. It ranks after every live account that has a 5h window,
   by its 7d reset. So it becomes the auto head only when no live account has a 5h window. A pin can still make it the head.
   It counts for the left (7d) ear only. Its card block has no 5h row, shows the credits balance, and its head tag is `next 7d`.
+  An account with no 5h and no 7d window keeps its cell. The cell shows the mark, the name, `no data` and two dotted tracks.
 - **Colour thresholds:** emerald `#1a8a6a` under 50%, blonde `#FBB13C` from 50%, ruby `#e06a78` from 75%. All three thresholds can be configured.
 - **Each machine fetches its own data.** Windows has its own logins. The design has no network sync.
 - **The widget never refreshes an OAuth token.** A Claude refresh token works only once. A refresh by the widget logs out the running Claude Code sessions.

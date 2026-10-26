@@ -1,7 +1,9 @@
 // Draws a CardView into the card markup of index.html. The rows are a port of
 // docs/design/mockup/Card.dc.html.
 
+import { NO_DATA_TEXT } from './centre';
 import { CARD_ROW, type AccountRow, type CardView, type WindowRow } from './card';
+import { markPoints } from './marks';
 import { MOON_DISC } from './moon';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -27,10 +29,12 @@ function part<T extends Element>(root: ParentNode, selector: string): T {
   return el;
 }
 
-// The hex dot of the mockup, a flat-top hexagon in a 12 by 11 box.
-function dotNode(color: string): SVGElement {
-  const el = svg('svg', { width: 12, height: 11, viewBox: '0 0 12 11', 'aria-hidden': 'true' });
-  el.append(svg('path', { d: 'M3 0.5 L9 0.5 L11.5 5.5 L9 10.5 L3 10.5 L0.5 5.5 Z', fill: color }));
+// The provider mark, the same polygon as the cell mark, in a 12 px box.
+const CARD_MARK = 12;
+
+function markNode(a: AccountRow): SVGElement {
+  const el = svg('svg', { width: CARD_MARK, height: CARD_MARK, viewBox: '0 0 ' + CARD_MARK + ' ' + CARD_MARK, 'aria-hidden': 'true' });
+  el.append(svg('polygon', { points: markPoints(a.provider, CARD_MARK), fill: a.colour }));
   return el;
 }
 
@@ -89,13 +93,14 @@ function accountNode(a: AccountRow): HTMLElement {
   const block = html('div', 'acct');
   block.style.height = a.height + 'px';
   const title = html('div', 'title');
-  title.append(dotNode(a.dot), html('span', 'name', a.name));
+  title.append(markNode(a), html('span', 'name', a.name));
   if (a.tag) title.append(html('span', 'tag', a.tag));
   title.append(html('span', 'grow'));
   if (a.stale) title.append(staleNode(a.stale));
   const wins = html('div', 'wins');
   wins.style.opacity = a.stale ? String(STALE_ROWS) : '1';
   wins.append(...a.windows.map(windowNode));
+  if (a.noData) wins.append(html('div', 'nodata', NO_DATA_TEXT));
   if (a.credits != null) wins.append(creditsNode(a.credits));
   block.append(title, wins);
   return block;

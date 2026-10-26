@@ -24,6 +24,7 @@ describe('cellText of a 7d-only account', () => {
     expect(cellText(codexAccount('codex', 37, WEEK), NOW)).toEqual({
       provider: 'codex',
       name: 'codex',
+      noData: false,
       five: { pct: '--', countdown: '--' },
       seven: { pct: '37%', countdown: '4d06h' }
     });
@@ -94,11 +95,12 @@ describe('bubble of a 7d-only account', () => {
 });
 
 describe('card of a 7d-only account', () => {
-  it('has a teal dot, the 7d row, the credits row and no 5h row', () => {
+  it('has a teal mark, the 7d row, the credits row and no 5h row', () => {
     const view = cardView(update([account('acc1', 10, 20), codexAccount('codex', 37, WEEK)]), NOW, AUTO);
     const [claude, codex] = view.rows;
-    expect(claude).toMatchObject({ name: 'acc1', dot: PROVIDER_COLOUR.claude, credits: null, height: CARD_ROW });
-    expect(codex).toMatchObject({ id: 'codex:codex', name: 'codex', dot: PROVIDER_COLOUR.codex, credits: '123.45' });
+    expect(claude).toMatchObject({ name: 'acc1', provider: 'claude', colour: PROVIDER_COLOUR.claude, credits: null });
+    expect(claude.height).toBe(CARD_ROW);
+    expect(codex).toMatchObject({ id: 'codex:codex', provider: 'codex', colour: PROVIDER_COLOUR.codex, credits: '123.45' });
     expect(codex.windows.map((w) => w.label)).toEqual(['7d']);
     expect(codex.height).toBe(blockHeight(2));
   });
@@ -113,9 +115,15 @@ describe('card of a 7d-only account', () => {
     expect(view.rows[0].height).toBe(blockHeight(1));
   });
 
-  it('shows the balance as given, or unlimited', () => {
-    expect(creditsText({ hasCredits: true, unlimited: false, balance: '21.5000' })).toBe('21.5000');
-    expect(creditsText({ hasCredits: true, unlimited: true, balance: null })).toBe('unlimited');
+  it('rounds the balance to 2 decimals with thousands separators, and keeps unlimited', () => {
+    const credits = (balance: string | null, unlimited = false) => ({ hasCredits: true, unlimited, balance });
+    expect(creditsText(credits('21690.5774275000'))).toBe('21,690.58');
+    expect(creditsText(credits('21690.5700'))).toBe('21,690.57');
+    expect(creditsText(credits('1234567'))).toBe('1,234,567.00');
+    expect(creditsText(credits('0'))).toBe('0.00');
+    expect(creditsText(credits('n/a'))).toBe('n/a');
+    expect(creditsText(credits(null, true))).toBe('unlimited');
+    expect(creditsText(credits(''))).toBeNull();
     expect(creditsText({ hasCredits: false, unlimited: false, balance: null })).toBeNull();
     expect(creditsText(null)).toBeNull();
   });
@@ -123,6 +131,36 @@ describe('card of a 7d-only account', () => {
   it('shows a stale 7d-only account with its age', () => {
     const old = { ...codexAccount('codex', 37, -5, true), fetchedAt: NOW - 8 * 60 * MIN };
     expect(cardView(update([old]), NOW, AUTO).rows[0].stale).toBe('stale 8h');
+  });
+});
+
+describe('a Codex account with no reading', () => {
+  const empty = (): AccountView => ({ ...codexAccount('codex', 0, null, true, null), windows: [] });
+
+  it('keeps its cell, with the mark, the name, no data and two dotted tracks', () => {
+    const view = bubbleView(update([account('acc1', 10, 20), empty()]), NOW);
+    const cell = view.cells[1];
+    expect(cell.id).toBe('codex:codex');
+    expect(cell.rings).toEqual({ five: null, seven: null });
+    expect(cell.text.noData).toBe(true);
+    expect(cell.fit.items.map((i) => i.text)).toEqual(['codex', 'no data']);
+    expect(cell.fit.mark).not.toBeNull();
+    expect(cell.dim).toBe(true);
+  });
+
+  it('shows one no data line in the card and no tag', () => {
+    const row = cardView(update([empty()]), NOW, AUTO).rows[0];
+    expect(row).toMatchObject({ noData: true, windows: [], credits: null, tag: null, height: blockHeight(1) });
+  });
+
+  it('ranks after a 7d-only account when both are live', () => {
+    const live = { ...empty(), stale: false };
+    expect(pickAuto([live, codexAccount('pro', 37, WEEK)], NOW)?.id).toBe('codex:pro');
+  });
+
+  it('says no data in the label when pinned', () => {
+    const view = bubbleView(update([empty()]), NOW, 'codex:codex');
+    expect(view.label.startsWith('AI usage. Pinned: Codex codex. No data.')).toBe(true);
   });
 });
 

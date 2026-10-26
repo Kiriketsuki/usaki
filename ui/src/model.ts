@@ -6,7 +6,17 @@ import { type EarState, earState } from './ears';
 import { type CellFit, fitCell } from './fit';
 import { type Cell, type Layout, layout } from './layout';
 import { PROVIDER_LABEL } from './marks';
-import { type AccountView, type UsageUpdate, fiveHour, sevenDay, weekOnly } from './usage';
+import {
+  type AccountView,
+  FIVE_HOUR_MINUTES,
+  SEVEN_DAY_MINUTES,
+  type UsageUpdate,
+  fiveHour,
+  hasWindow,
+  noData,
+  sevenDay,
+  weekOnly
+} from './usage';
 
 export interface RingView {
   pct: number;
@@ -21,8 +31,11 @@ export interface CellView {
   r: number;
   /** The id of the account in the cell, or null for the no data cell. */
   id: string | null;
-  /** The 5h ring is null for a 7d-only account. The cell then draws a dotted empty track. */
-  rings: { five: RingView | null; seven: RingView } | null;
+  /**
+   * A ring is null when the account has no such window, such as the 5h ring of a 7d-only
+   * account. The cell then draws a dotted empty track.
+   */
+  rings: { five: RingView | null; seven: RingView | null } | null;
   text: CellText;
   fit: CellFit;
   /** True for a stale account. The cell then dims. */
@@ -61,11 +74,10 @@ export const CONTROLS_HINT =
 function ariaLabel(head: AccountView | null, mode: HeadMode, now: number): string {
   if (!head || mode === 'none') return 'AI usage. No fresh data.' + CONTROLS_HINT;
   const t = cellText(head, now);
+  const who = (mode === 'pinned' ? 'Pinned: ' : 'Next reset: ') + PROVIDER_LABEL[head.provider] + ' ' + t.name;
+  if (noData(head)) return 'AI usage. ' + who + '. No data.' + CONTROLS_HINT;
   const five = weekOnly(head) ? 'none' : spoken(t.five);
-  return (
-    'AI usage. ' + (mode === 'pinned' ? 'Pinned: ' : 'Next reset: ') + PROVIDER_LABEL[head.provider] + ' ' + t.name +
-    '. 5 hour window: ' + five + '. 7 day window: ' + spoken(t.seven) + '.' + CONTROLS_HINT
-  );
+  return 'AI usage. ' + who + '. 5 hour window: ' + five + '. 7 day window: ' + spoken(t.seven) + '.' + CONTROLS_HINT;
 }
 
 function noDataCell(at: Cell): CellView {
@@ -103,8 +115,8 @@ export function bubbleView(
             ...lay.cells[i],
             id: a.id,
             rings: {
-              five: weekOnly(a) ? null : ringView(fiveHour(a, now).pct, thresholds),
-              seven: ringView(sevenDay(a, now).pct, thresholds)
+              five: hasWindow(a, FIVE_HOUR_MINUTES) ? ringView(fiveHour(a, now).pct, thresholds) : null,
+              seven: hasWindow(a, SEVEN_DAY_MINUTES) ? ringView(sevenDay(a, now).pct, thresholds) : null
             },
             text,
             fit: fitCell(text),
@@ -116,7 +128,7 @@ export function bubbleView(
   // account has no 5h window, so it counts for the left ear only.
   const live = accounts
     .filter((a) => !a.stale)
-    .map((a) => ({ five: weekOnly(a) ? null : fiveHour(a, now).pct, seven: sevenDay(a, now).pct }));
+    .map((a) => ({ five: hasWindow(a, FIVE_HOUR_MINUTES) ? fiveHour(a, now).pct : null, seven: sevenDay(a, now).pct }));
   return {
     cells,
     layout: lay,

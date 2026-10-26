@@ -18,6 +18,7 @@ describe('bubbleView', () => {
     expect(view.cells[0].text).toEqual({
       provider: 'claude',
       name: 'acc2',
+      noData: false,
       five: { pct: '81%', countdown: '47m' },
       seven: { pct: '20%', countdown: '3d00h' }
     });

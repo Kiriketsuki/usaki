@@ -30,6 +30,7 @@ describe('cellText', () => {
     expect(cellText(account('acc2', 33, 72, false, 58, 2 * 1440 + 4 * 60), NOW)).toEqual({
       provider: 'claude',
       name: 'acc2',
+      noData: false,
       five: { pct: '33%', countdown: '1h12m' },
       seven: { pct: '58%', countdown: '2d04h' }
     });

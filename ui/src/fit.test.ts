@@ -14,6 +14,7 @@ const text = (
 ) => ({
   provider,
   name,
+  noData: false,
   five: { pct: fivePct, countdown: fiveCd },
   seven: { pct: sevenPct, countdown: sevenCd }
 });

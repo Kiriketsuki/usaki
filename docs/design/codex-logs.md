@@ -88,5 +88,13 @@ milestone 3 adds more Codex homes, each with its own name.
 
 ## Credits
 
-The card shows the `credits.balance` string as Codex writes it, under the label `credits`. The
-logs do not name the unit, so the card adds none. An `unlimited` account shows `unlimited`.
+The card shows `credits.balance` under the label `credits`. It rounds the balance to 2 decimals
+and adds thousands separators, for example `21,690.58`. A balance that is not a number shows as
+Codex writes it. The logs do not name the unit, so the card adds none. An `unlimited` account
+shows `unlimited`.
+
+## No reading
+
+A Codex home with a `sessions` folder but no rate limit event keeps its cell, so the user sees
+that Codex is set up. The cell is stale. It shows the mark, the name and `no data`, with two
+dotted empty tracks. Its card block shows one `no data` line.

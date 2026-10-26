@@ -98,9 +98,9 @@ function cellNode(c: CellView): SVGElement {
   g.append(svg('path', { d: hexPath(c.r, c.x, c.y), fill: 'none', stroke: EDGE, 'stroke-width': 1 }));
   const rings = cellRings(c.r);
   if (c.rings) {
-    const five = c.rings.five;
+    const { five, seven } = c.rings;
     g.append(
-      ...ringNodes(c, rings.seven, c.rings.seven),
+      ...(seven ? ringNodes(c, rings.seven, seven) : [emptyRingNode(c, rings.seven)]),
       ...(five ? ringNodes(c, rings.five, five) : [emptyRingNode(c, rings.five)])
     );
   }
