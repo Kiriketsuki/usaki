@@ -97,4 +97,4 @@ shows `unlimited`.
 
 A Codex home with a `sessions` folder but no rate limit event keeps its cell, so the user sees
 that Codex is set up. The cell is stale. It shows the mark, the name and `no data`, with two
-dotted empty tracks. Its card block shows one `no data` line.
+empty tracks of hex dots. Its card block shows one `no data` line.

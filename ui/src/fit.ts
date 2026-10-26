@@ -23,22 +23,29 @@ export const COL_X = 14.5;
 const ROW_GAP = 1.5;
 const ELLIPSIS = '…';
 /** The side of the square box of the provider mark, in px. */
-export const MARK_SIZE = 9;
+export const MARK_SIZE = 8;
 /** The gap between the mark and the name, in px. */
-export const MARK_GAP = 2;
+export const MARK_GAP = 1;
 
 export type Role = 'pct' | 'name' | 'countdown';
 
 /** The font size of each row in px. style.css sets the same sizes. */
 export const ROW_SIZE: Record<Role, number> = { pct: 10.5, name: 9.5, countdown: 8 };
 const ROWS: readonly Role[] = ['pct', 'name', 'countdown'];
+/**
+ * The name font sizes that the fit tries, largest first. The mark takes room on the name
+ * row, so a long name steps down by up to 1 px before it loses characters. A 12 character
+ * name then fits whole.
+ */
+export const NAME_SIZES: readonly number[] = [ROW_SIZE.name, ROW_SIZE.name - 0.5, ROW_SIZE.name - 1];
 
-/** One text item, centred on (x, y) px from the cell centre. */
+/** One text item, centred on (x, y) px from the cell centre, in a font of `size` px. */
 export interface TextItem {
   text: string;
   role: Role;
   x: number;
   y: number;
+  size: number;
 }
 
 // The y of the middle of each row. The rows stack on the cell centre, one em box each.
@@ -60,19 +67,21 @@ function markLead(text: CellText): number {
 
 /**
  * The items of a cell, with the name as given. With a mark, the name moves right by half
- * the mark lead, so the mark and the name centre on the cell together.
+ * the mark lead, so the mark and the name centre on the cell together. The rows keep their
+ * places when the name font steps down.
  */
-export function cellItems(text: CellText, name = text.name): TextItem[] {
+export function cellItems(text: CellText, name = text.name, nameSize = ROW_SIZE.name): TextItem[] {
   const y = rowY();
-  const nameItem: TextItem = { text: name, role: 'name', x: markLead(text) / 2, y: y.name };
+  const at = (t: string, role: Role, x: number): TextItem => ({ text: t, role, x, y: y[role], size: ROW_SIZE[role] });
+  const nameItem: TextItem = { ...at(name, 'name', markLead(text) / 2), size: nameSize };
   // An account with no window shows `no data` on the countdown row, with no percent.
-  if (text.noData) return [nameItem, { text: NO_DATA_TEXT, role: 'countdown', x: 0, y: y.countdown }];
+  if (text.noData) return [nameItem, at(NO_DATA_TEXT, 'countdown', 0)];
   return [
-    { text: text.five.pct, role: 'pct', x: -COL_X, y: y.pct },
-    { text: text.seven.pct, role: 'pct', x: COL_X, y: y.pct },
+    at(text.five.pct, 'pct', -COL_X),
+    at(text.seven.pct, 'pct', COL_X),
     nameItem,
-    { text: text.five.countdown, role: 'countdown', x: -COL_X, y: y.countdown },
-    { text: text.seven.countdown, role: 'countdown', x: COL_X, y: y.countdown }
+    at(text.five.countdown, 'countdown', -COL_X),
+    at(text.seven.countdown, 'countdown', COL_X)
   ];
 }
 
@@ -82,15 +91,14 @@ export function cellItems(text: CellText, name = text.name): TextItem[] {
  * slanted edges at x * cos 30 + y * sin 30 = apothem.
  */
 export function itemNorm(item: TextItem): number {
-  const size = ROW_SIZE[item.role];
-  const dx = Math.abs(item.x) + (item.text.length * CHAR_EM * size) / 2;
-  const dy = Math.abs(item.y) + size / 2;
+  const dx = Math.abs(item.x) + itemHalfWidth(item);
+  const dy = Math.abs(item.y) + item.size / 2;
   return Math.max(dy, dx * APOTHEM + dy / 2);
 }
 
 /** Returns the half width of an item, in px. */
 export function itemHalfWidth(item: TextItem): number {
-  return (item.text.length * CHAR_EM * ROW_SIZE[item.role]) / 2;
+  return (item.text.length * CHAR_EM * item.size) / 2;
 }
 
 function fits(items: readonly TextItem[]): boolean {
@@ -123,16 +131,20 @@ function markPlace(text: CellText, items: readonly TextItem[]): MarkPlace | null
 }
 
 /**
- * Fits the cell text inside the 5h ring. A 10 character name fits whole after the mark. A
- * longer name loses characters from the end and ends in an ellipsis. The percents and the
- * countdowns always stay whole, and the rows never move off the common centre. The name
- * item with its offset spans the mark too, so the fit of the name also fits the mark.
+ * Fits the cell text inside the 5h ring. A 12 character name fits whole after the mark, at
+ * a name font up to 1 px smaller. A longer name loses characters from the end and ends in an
+ * ellipsis. The fit keeps the most characters first and the biggest font second. The
+ * percents and the countdowns always stay whole, and the rows never move off the common
+ * centre. The name item with its offset spans the mark too, so the fit of the name also fits
+ * the mark.
  */
 export function fitCell(text: CellText): CellFit {
   for (let keep = text.name.length; keep >= 1; keep -= 1) {
     const name = cut(text.name, keep);
-    const items = cellItems(text, name);
-    if (fits(items)) return { name, items, mark: markPlace(text, items) };
+    for (const size of NAME_SIZES) {
+      const items = cellItems(text, name, size);
+      if (fits(items)) return { name, items, mark: markPlace(text, items) };
+    }
   }
   // No cut fits. Only a percent of 1000 or more can cause this.
   const name = cut(text.name, 1);

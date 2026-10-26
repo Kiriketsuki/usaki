@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NO_DATA } from './centre';
-import { COL_X, MARK_GAP, MARK_SIZE, TEXT_LIMIT, cellItems, fitCell, itemHalfWidth, itemNorm } from './fit';
+import { COL_X, MARK_GAP, MARK_SIZE, NAME_SIZES, ROW_SIZE, TEXT_LIMIT, cellItems, fitCell, itemHalfWidth, itemNorm } from './fit';
 import { APOTHEM, CELL_APOTHEM, FIVE_RING } from './geometry';
 import type { ProviderName } from './usage';
 
@@ -49,9 +49,21 @@ describe('fitCell', () => {
     expect(fitCell(text('acc1')).name).toBe('acc1');
   });
 
-  it('keeps a 10 character name whole after the mark with the widest normal figures', () => {
-    expect(fitCell(text('longname10', '4h59m', '23h59m', '100%', '100%')).name).toBe('longname10');
-    expect(fitCell(text('longname11c')).name).toBe('longname1…');
+  it('keeps a name of up to 12 characters whole after the mark, with a smaller font when needed', () => {
+    const size = (name: string) => {
+      const fit = fitCell(text(name, '4h59m', '23h59m', '100%', '100%'));
+      return [fit.name, fit.items.find((i) => i.role === 'name')?.size];
+    };
+    expect(size('acc1')).toEqual(['acc1', ROW_SIZE.name]);
+    expect(size('longname10')).toEqual(['longname10', ROW_SIZE.name]);
+    expect(size('longname11c')).toEqual(['longname11c', NAME_SIZES[1]]);
+    expect(size('longname12ch')).toEqual(['longname12ch', NAME_SIZES[2]]);
+    expect(fitCell(text('longname13chr')).name).toBe('longname13c…');
+  });
+
+  it('steps the name font down by at most 1 px', () => {
+    expect(NAME_SIZES[0]).toBe(ROW_SIZE.name);
+    expect(ROW_SIZE.name - Math.min(...NAME_SIZES)).toBeLessThanOrEqual(1);
   });
 
   it('keeps a 12 character name whole with no mark', () => {
@@ -78,7 +90,7 @@ describe('fitCell', () => {
   });
 
   it('never puts an item or the mark outside the 5h ring, and never lets two columns touch', () => {
-    const names = ['a', 'acc3', 'kiriket', 'longname12ch', 'averylongname20chars'];
+    const names = ['a', 'acc3', 'kiriket', 'longname11c', 'longname12ch', 'averylongname20chars'];
     const fives = ['ready', '33m', '4h59m', '--'];
     const sevens = ['ready', '33m', '23h59m', '6d23h', '--'];
     const pcts = ['0%', '33%', '100%', '--'];
