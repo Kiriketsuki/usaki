@@ -4,7 +4,7 @@
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
-use tauri::WebviewWindow;
+use tauri::{Manager, WebviewWindow};
 
 use crate::position::{self, MonitorRect, SavedPosition};
 
@@ -28,6 +28,32 @@ impl Anchor {
         if *slot == Some(at) {
             *slot = None;
         }
+    }
+}
+
+/// The placement that the window belongs at: the saved or restored one, or the one at
+/// start. A drag that settles replaces it, so a drag to another screen moves the home too.
+#[derive(Debug, Clone, Default)]
+pub struct Home(Arc<Mutex<Option<SavedPosition>>>);
+
+impl Home {
+    pub fn get(&self) -> Option<SavedPosition> {
+        self.0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    pub fn set(&self, pos: SavedPosition) {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner) = Some(pos);
+    }
+
+    /// Sets the home only when none is set yet.
+    pub fn init(&self, pos: SavedPosition) {
+        self.0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get_or_insert(pos);
     }
 }
 
@@ -86,12 +112,16 @@ pub fn save(window: &WebviewWindow) -> Result<(), String> {
         return Err("The app cannot read the window position.".into());
     };
     let path = position::file_in(&dir);
-    position::save(&path, &pos).map_err(|e| format!("Cannot write {}. {e}", path.display()))
+    position::save(&path, &pos).map_err(|e| format!("Cannot write {}. {e}", path.display()))?;
+    if let Some(home) = window.try_state::<Home>() {
+        home.set(pos);
+    }
+    Ok(())
 }
 
 /// Restores the saved placement, if the file has one that is still valid. Otherwise the
 /// window keeps the default placement. On Hyprland the move waits for the first map.
-pub fn restore(window: &WebviewWindow, anchor: &Anchor) {
+pub fn restore(window: &WebviewWindow, anchor: &Anchor, home: &Home) {
     let Some(path) = position::state_dir().map(|d| position::file_in(&d)) else {
         return;
     };
@@ -109,6 +139,7 @@ pub fn restore(window: &WebviewWindow, anchor: &Anchor) {
         );
         return;
     };
+    home.set(saved.clone());
     #[cfg(target_os = "linux")]
     if on_hyprland() {
         crate::hyprland::move_after_settle(at, anchor.clone());
@@ -167,6 +198,14 @@ impl Tracker {
         let start = slot.is_none();
         *slot = Some(slot.map_or(until, |old| old.max(until)));
         start
+    }
+
+    /// Returns true while a tracker thread runs, so a drag may still move the window.
+    pub fn active(&self) -> bool {
+        self.0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .is_some()
     }
 
     /// Returns true when the stop time has passed. The thread then ends, and the next arm
@@ -251,6 +290,18 @@ mod tests {
         assert!(!tracker.arm(now + TRACK_SETTLE));
         assert!(!tracker.done(now + TRACK_SETTLE));
         assert!(tracker.done(now + TRACK_IDLE));
+        assert!(!tracker.active());
         assert!(tracker.arm(now + TRACK_IDLE));
+        assert!(tracker.active());
+    }
+
+    #[test]
+    fn home_init_keeps_a_home_that_is_set() {
+        let home = Home::default();
+        home.init(SavedPosition::new(1, 2, None));
+        home.init(SavedPosition::new(3, 4, None));
+        assert_eq!(home.get(), Some(SavedPosition::new(1, 2, None)));
+        home.set(SavedPosition::new(5, 6, None));
+        assert_eq!(home.get(), Some(SavedPosition::new(5, 6, None)));
     }
 }

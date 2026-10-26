@@ -8,13 +8,15 @@ mod hyprland;
 mod placement;
 mod poller;
 mod position;
+#[cfg(target_os = "linux")]
+mod stick;
 mod view;
 mod watch;
 mod window;
 
 use tauri::{Manager, State, WindowEvent};
 
-use crate::placement::{Anchor, Tracker};
+use crate::placement::{Anchor, Home, Tracker};
 use crate::poller::CacheDir;
 use crate::view::UsageUpdate;
 use crate::watch::WatchRecords;
@@ -86,9 +88,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // The config creates the window hidden, so the first map already has the bubble size.
     window::set_size(&bubble, BUBBLE_WIDTH, BUBBLE_HEIGHT)?;
     let anchor = Anchor::default();
-    placement::restore(&bubble, &anchor);
+    let home = Home::default();
+    placement::restore(&bubble, &anchor, &home);
     app.manage(anchor);
+    app.manage(home);
     app.manage(Tracker::default());
+    #[cfg(target_os = "linux")]
+    if hyprland::is_hyprland() {
+        stick::spawn(app.handle().clone());
+    }
     bubble.show()?;
     // A close request is the last time the window still has a position to read.
     let closing = bubble.clone();

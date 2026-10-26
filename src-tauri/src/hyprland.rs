@@ -45,11 +45,18 @@ pub fn monitor_id_of(clients_json: &str, pid: u32) -> Option<i64> {
     client_of(clients_json, pid)?["monitor"].as_i64()
 }
 
-/// One monitor of `hyprctl -j monitors`: its id and its rectangle in layout coordinates.
+/// Returns the workspace id of the window of process `pid` in `hyprctl -j clients` output.
+pub fn workspace_id_of(clients_json: &str, pid: u32) -> Option<i64> {
+    client_of(clients_json, pid)?["workspace"]["id"].as_i64()
+}
+
+/// One monitor of `hyprctl -j monitors`: its id, its rectangle in layout coordinates and
+/// the id of the workspace that it shows.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Monitor {
     pub id: i64,
     pub rect: MonitorRect,
+    pub active_workspace: Option<i64>,
 }
 
 /// Returns the monitors in `hyprctl -j monitors` output. The width and the height there are
@@ -67,6 +74,7 @@ pub fn monitors_of(monitors_json: &str) -> Vec<Monitor> {
             }
             Some(Monitor {
                 id: m["id"].as_i64()?,
+                active_workspace: m["activeWorkspace"]["id"].as_i64(),
                 rect: MonitorRect {
                     name: m["name"].as_str().map(str::to_owned),
                     x: m["x"].as_i64()?,
@@ -80,7 +88,9 @@ pub fn monitors_of(monitors_json: &str) -> Vec<Monitor> {
 }
 
 /// Returns the placement of the window of process `pid` from the hyprctl outputs. The
-/// monitor comes from the client's monitor id, else from the monitor under the corner.
+/// monitor is the one under the corner, because the corner is what the user sees. The
+/// client's monitor id can lag: `movewindowpixel` to another screen does not change it. The
+/// id is the fall back for a corner off every monitor.
 pub fn placement_of(clients_json: &str, monitors_json: &str, pid: u32) -> Option<SavedPosition> {
     let (x, y) = position_of(clients_json, pid)?;
     let monitors = monitors_of(monitors_json);
@@ -88,11 +98,12 @@ pub fn placement_of(clients_json: &str, monitors_json: &str, pid: u32) -> Option
         .and_then(|id| monitors.iter().find(|m| m.id == id))
         .and_then(|m| m.rect.name.clone());
     let rects: Vec<MonitorRect> = monitors.into_iter().map(|m| m.rect).collect();
-    let name = by_id.or_else(|| monitor_at(&rects, x, y));
+    let name = monitor_at(&rects, x, y).or(by_id);
     Some(SavedPosition::new(x, y, name))
 }
 
-fn hyprctl_json(what: &str) -> Option<String> {
+/// Returns the output of `hyprctl -j <what>`, or None when hyprctl fails.
+pub fn hyprctl_json(what: &str) -> Option<String> {
     let out = Command::new("hyprctl").args(["-j", what]).output().ok()?;
     out.status
         .success()
@@ -106,6 +117,21 @@ pub fn move_args(pid: u32, x: i64, y: i64) -> [String; 3] {
         "movewindowpixel".to_owned(),
         format!("exact {x} {y},pid:{pid}"),
     ]
+}
+
+/// Runs one hyprctl dispatch and logs a failure.
+pub fn dispatch(args: &[String]) {
+    match Command::new("hyprctl").args(args).output() {
+        // hyprctl exits 0 and prints the reason when a dispatch fails.
+        Ok(out) if out.status.success() && out.stdout.trim_ascii() == b"ok" => {}
+        Ok(out) => eprintln!(
+            "usaki: hyprctl {} failed: {}{}",
+            args.join(" "),
+            String::from_utf8_lossy(&out.stdout).trim(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        ),
+        Err(e) => eprintln!("usaki: Cannot run hyprctl. {e}"),
+    }
 }
 
 /// Returns the top-left corner of this process's window, or None when hyprctl fails or the
@@ -141,15 +167,7 @@ pub fn move_after_settle(at: (i64, i64), anchor: Anchor) {
         while own_position().is_none() && start.elapsed() < MAP_WAIT {
             std::thread::sleep(MAP_POLL);
         }
-        let args = move_args(std::process::id(), at.0, at.1);
-        match Command::new("hyprctl").args(&args).output() {
-            Ok(out) if out.status.success() => {}
-            Ok(out) => eprintln!(
-                "usaki: hyprctl cannot move the bubble: {}",
-                String::from_utf8_lossy(&out.stderr).trim()
-            ),
-            Err(e) => eprintln!("usaki: Cannot run hyprctl to move the bubble: {e}"),
-        }
+        dispatch(&move_args(std::process::id(), at.0, at.1));
         anchor.clear_if(at);
     });
 }
@@ -191,7 +209,15 @@ mod tests {
         assert_eq!((found[0].rect.x, found[0].rect.width), (1920, 1920));
         // 2880x1800 at scale 1.5 is 1920x1200. A 90 degree turn swaps the two.
         assert_eq!((found[2].rect.width, found[2].rect.height), (1200, 1920));
+        assert_eq!(found[0].active_workspace, None);
         assert!(monitors_of("not json").is_empty());
+    }
+
+    #[test]
+    fn reads_the_workspace_of_the_window() {
+        let clients = r#"[{"pid": 7, "at": [0, 0], "workspace": {"id": 21, "name": "21"}}]"#;
+        assert_eq!(workspace_id_of(clients, 7), Some(21));
+        assert_eq!(workspace_id_of(clients, 8), None);
     }
 
     #[test]
@@ -200,6 +226,21 @@ mod tests {
         assert_eq!(
             placement_of(clients, MONITORS, 7),
             Some(SavedPosition::new(2804, 463, Some("DP-2".into())))
+        );
+    }
+
+    #[test]
+    fn names_the_monitor_under_the_corner_when_the_id_lags() {
+        // The live run saw a window at 4500,300 on DP-3 with the monitor id of DP-2.
+        let clients = r#"[{"pid": 7, "at": [4500, 300], "monitor": 0}]"#;
+        assert_eq!(
+            placement_of(clients, MONITORS, 7),
+            Some(SavedPosition::new(4500, 300, Some("DP-3".into())))
+        );
+        let off = r#"[{"pid": 7, "at": [9000, 300], "monitor": 0}]"#;
+        assert_eq!(
+            placement_of(off, MONITORS, 7),
+            Some(SavedPosition::new(9000, 300, Some("DP-2".into())))
         );
     }
 
