@@ -1,6 +1,7 @@
 //! Data providers. Each provider turns one source into a `Snapshot`.
 
 pub mod claude_cache;
+pub mod claude_watch;
 
 use std::path::PathBuf;
 
