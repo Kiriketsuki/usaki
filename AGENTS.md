@@ -10,7 +10,8 @@ The name comes from usagi, Japanese for rabbit. The app carries a rabbit identit
 
 ## Status
 
-The design is approved. No app code exists yet. Read `.claude/handoffs/` for the latest handoff.
+The user approved the design. Milestone 1 has the Tauri scaffold and a bubble that shows live Claude
+cache data. Read `.claude/handoffs/` for the latest handoff.
 
 ## Design sources
 
@@ -22,14 +23,37 @@ The design is approved. No app code exists yet. Read `.claude/handoffs/` for the
 
 The mockup is the visual spec. Port its HTML, SVG and ring maths. Do not redesign them.
 
-## Stack (planned)
+## Stack
 
-- Tauri v2, one codebase for Linux and Windows
-- Rust backend: providers, poller, config, window position
-- Vite and vanilla TypeScript frontend, with no UI framework
-- TOML config at `dirs::config_dir()/usaki/config.toml`
+- Tauri v2, one codebase for Linux and Windows. The app crate is `src-tauri/`.
+- Rust backend: providers, poller, config, window position. The shared model and the
+  providers are in `crates/usaki-core/`.
+- Vite and vanilla TypeScript frontend in `ui/`, with no UI framework. bun manages the
+  packages and runs the scripts. Never use npm, pnpm or npx.
+- TOML config at `dirs::config_dir()/usaki/config.toml` (planned, milestone 3)
 
-The commands section comes after the scaffold.
+`package.json` stays in `ui/`. A root `package.json` turns on the npm publish and version
+checks of the template workflows.
+
+## Commands
+
+Run the bun commands in `ui/` and the cargo commands at the repo root.
+
+| Task | Command |
+|---|---|
+| Install the frontend packages | `bun install` |
+| Run the app with hot reload | `bun run tauri dev` |
+| Build the app binary | `bun run tauri build --no-bundle` |
+| Frontend tests (vitest) | `bun run test` |
+| Rust tests | `cargo test --workspace` |
+| Format check | `cargo fmt --all --check` |
+| Lint | `cargo clippy --workspace --all-targets -- -D warnings` |
+
+- `bun run test` runs vitest. Do not use `bun test`, which starts the bun test runner.
+- A plain `cargo build` gives a dev binary that loads the Vite dev server. Use
+  `bun run tauri build` for a binary with the page inside it.
+- On Hyprland the bubble needs the `usaki-bubble` window rule from
+  `docs/spikes/2026-10-23-hyprland-window.md`. The rule floats and pins the window.
 
 ## Rules
 
