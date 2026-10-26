@@ -6,7 +6,7 @@ use tauri::WebviewWindow;
 /// ui/src/layout.ts. The page then sets the size for the real cell count.
 pub const BUBBLE_WIDTH: i32 = 134;
 /// See `BUBBLE_WIDTH`.
-pub const BUBBLE_HEIGHT: i32 = 204;
+pub const BUBBLE_HEIGHT: i32 = 233;
 
 /// The smallest and the largest size, in logical pixels, that the page may ask for.
 pub const MIN_SIZE: i32 = 32;
@@ -72,7 +72,10 @@ mod tests {
 
     #[test]
     fn accepts_a_size_inside_the_bounds() {
-        assert_eq!(checked_size(124, 178), Ok((124, 178)));
+        assert_eq!(
+            checked_size(BUBBLE_WIDTH, BUBBLE_HEIGHT),
+            Ok((BUBBLE_WIDTH, BUBBLE_HEIGHT))
+        );
         assert_eq!(checked_size(MIN_SIZE, MAX_SIZE), Ok((MIN_SIZE, MAX_SIZE)));
     }
 

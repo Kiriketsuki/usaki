@@ -28,7 +28,7 @@ const TRACK_DOT_R = 0.8;
 /** The notch takes the glass tone, so it reads as a cut in the ring. */
 const NOTCH = '#161821';
 const EDGE = 'rgba(255,255,255,0.12)';
-/** Each ear hex keeps the faint edge of the old polygon ears, so a dark hex shows on a dark desktop. */
+/** Each decor hex keeps the faint edge of the old polygon ears, so a dark hex shows on a dark desktop. */
 const DECOR_EDGE_SW = 0.75;
 const HIGHLIGHT = '#e0e2ea';
 const HIGHLIGHT_SW = 1.5;
@@ -63,7 +63,7 @@ function part<T extends Element>(root: ParentNode, selector: string): T {
   return el;
 }
 
-// A small decor hex of the ears. Decor has no ring and no text.
+// A small decor hex of the ears or the foot pads. Decor has no ring and no text.
 function decorNode(d: { x: number; y: number; r: number; fill: string }): SVGElement {
   return svg('polygon', {
     points: hexCorners(d.r, d.x, d.y).map((p) => p.join(',')).join(' '),
@@ -73,10 +73,10 @@ function decorNode(d: { x: number; y: number; r: number; fill: string }): SVGEle
   });
 }
 
-// The ears draw in the unclipped ears layer, outside the cell glass.
+// The ears and the foot pads draw in the unclipped ears layer, outside the cell glass.
 function decorNodes(view: BubbleView): SVGElement[] {
   const top = view.layout.cells[0];
-  return ears(view.ears, top.x, view.layout.earBase).flat().map(decorNode);
+  return [...ears(view.ears, top.x, view.layout.earBase).flat(), ...view.layout.pads].map(decorNode);
 }
 
 // A ring is a track path and a progress path on top of it, as in the mockup.

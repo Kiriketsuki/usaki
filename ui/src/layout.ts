@@ -1,13 +1,15 @@
 // The rabbit layout. Issue #21 draws the bubble as a front-view rabbit. The auto account is the
 // head: the biggest cell, with the ears on it. The other accounts are smaller body cells below
 // the head. Every pair of cells that touch has the same gap, and no two cells overlap. Small
-// decor hexes form the ears. The function also gives the window size that holds the cells
-// and the ears.
+// decor hexes form the ears and the foot pads. The function also gives the window size that
+// holds the cells and the decor.
 
 import { allEarCells } from './ears';
 import { APOTHEM, CELL_APOTHEM, CELL_GAP, CELL_R, type Cell, HEAD_R, cellGap } from './geometry';
+import { type Decor, footPads } from './pads';
 
 export { CELL_GAP, type Cell, cellGap };
+export type { Decor };
 
 export interface Point {
   x: number;
@@ -53,12 +55,14 @@ function rawCells(count: number): Cell[] {
   return [head, ...Array.from({ length: body }, (_, i) => bodyCell(bodySite(i)))];
 }
 
-/** The clear space around the cells and the ears, in px. */
+/** The clear space around the cells and the decor, in px. */
 export const PAD = 2;
 
 export interface Layout {
   /** Cell centres and radii in window px. Cell 0 is the head. */
   cells: Cell[];
+  /** The foot pads in window px. */
+  pads: Decor[];
   /** The y of the head top edge in window px. The ears stand on it. */
   earBase: number;
   width: number;
@@ -72,18 +76,22 @@ function extent(h: Cell): { x0: number; x1: number; y0: number; y1: number } {
 
 /**
  * Returns the layout of `count` accounts. Zero accounts still get the head cell, for the no
- * data text. The window holds the cells, the ears of every fold state and PAD on each side. The layout depends on the count only, so a new head or a fold does not change
+ * data text. The window holds the cells, the ears of every fold state, the foot pads and PAD
+ * on each side. The layout depends on the count only, so a new head or a fold does not change
  * the window size.
  */
 export function layout(count: number): Layout {
   const raw = rawCells(Math.max(1, count));
   const head = raw[0];
   const top = head.y - HEAD_A;
-  const all = [...raw, ...allEarCells(head.x, top)].map(extent);
+  const pads = footPads(raw);
+  const all = [...raw, ...pads, ...allEarCells(head.x, top)].map(extent);
   const dx = PAD - Math.min(...all.map((e) => e.x0));
   const dy = PAD - Math.min(...all.map((e) => e.y0));
+  const shift = <T extends Cell>(c: T): T => ({ ...c, x: c.x + dx, y: c.y + dy });
   return {
-    cells: raw.map((c) => ({ x: c.x + dx, y: c.y + dy, r: c.r })),
+    cells: raw.map(shift),
+    pads: pads.map(shift),
     earBase: top + dy,
     width: Math.ceil(Math.max(...all.map((e) => e.x1)) + dx + PAD),
     height: Math.ceil(Math.max(...all.map((e) => e.y1)) + dy + PAD)
