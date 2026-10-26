@@ -65,6 +65,8 @@ impl Window {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Source {
     ClaudeCache,
+    /// The usage API, called with the token of a watcher login.
+    ClaudeWatch,
 }
 
 /// The usage of one account at one moment.
@@ -75,6 +77,9 @@ pub struct Snapshot {
     pub fetched_at: DateTime<Utc>,
     pub source: Source,
     pub stale: bool,
+    /// Why the snapshot is stale, when the provider knows the reason.
+    #[serde(default)]
+    pub stale_reason: Option<String>,
 }
 
 impl Snapshot {
@@ -91,6 +96,15 @@ impl Snapshot {
             fetched_at,
             source,
             stale,
+            stale_reason: None,
+        }
+    }
+
+    /// Returns this snapshot with a stale reason.
+    pub fn with_stale_reason(self, reason: impl Into<String>) -> Self {
+        Self {
+            stale_reason: Some(reason.into()),
+            ..self
         }
     }
 

@@ -65,9 +65,13 @@ Run the bun commands in `ui/` and the cargo commands at the repo root.
 
 - **Never refresh an OAuth token, and never write a credentials file.** A Claude refresh token
   works only once. A refresh by usaKi logs out the running Claude Code sessions. If a token has
-  expired, show the account as stale and wait.
-- **Claude data:** the statusline cache file `~/.cache/usaki/claude-<acct>.json` is the main
-  source. The read-only usage API is a fallback, called at most every 5 minutes.
+  expired, show the account as stale and wait. In a watcher dir only, usaKi may ask the official
+  `claude` binary to refresh the token. usaKi itself still never does it.
+- **Claude data:** two sources. The main source is the statusline cache file
+  `~/.cache/usaki/claude-<acct>.json`. A watcher login at `<data dir>/usaki/watch/<acct>` is the
+  second source. For a watcher login, usaKi reads the token read-only and calls the read-only
+  usage API, at most every 5 minutes per account. A fresh cache file wins. See
+  `docs/design/watcher-logins.md`.
 - **Codex data:** read `~/.codex/sessions` logs. Map windows by `window_minutes`, not by name.
 - **Hexagon only.** No circle variant.
 - **Mouse:** a left-drag moves the widget. A left-click expands it. A right-click shows the next

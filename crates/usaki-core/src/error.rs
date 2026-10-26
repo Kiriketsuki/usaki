@@ -28,6 +28,9 @@ pub enum Error {
     /// The account has no cache location and no home directory is known.
     #[error("Cannot find the cache directory. Set XDG_CACHE_HOME or HOME.")]
     NoCacheDir,
+    /// No data directory is known, so the watcher logins cannot be found.
+    #[error("Cannot find the data directory. Set XDG_DATA_HOME or HOME.")]
+    NoDataDir,
     /// The account id holds a character that is not safe in a file name.
     #[error(
         "The account id {account} is not valid. Use only letters, digits, underscore and hyphen."

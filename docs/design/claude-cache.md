@@ -3,6 +3,8 @@
 The statusline writes one cache file per Claude account. The `ClaudeCacheProvider` in
 `crates/usaki-core` reads it. The statusline writer is a later task.
 
+An account without a running session can use a watcher login instead. See `watcher-logins.md`.
+
 ## Path rule
 
 ```

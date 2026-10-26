@@ -1,0 +1,7 @@
+{
+  "five_hour": { "utilization": 0.0, "resets_at": null, "note": "ignored" },
+  "seven_day": { "utilization": 100.0, "resets_at": "2027-01-20T03:00:00Z" },
+  "seven_day_opus": { "utilization": 5.0, "resets_at": null },
+  "seven_day_oauth_apps": null,
+  "extra_usage": { "is_enabled": false, "monthly_limit": null }
+}

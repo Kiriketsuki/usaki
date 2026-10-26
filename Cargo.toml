@@ -9,8 +9,11 @@ publish = false
 
 [workspace.dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
+dirs = "7"
+libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 tempfile = "3"
+ureq = { version = "3", default-features = false, features = ["rustls"] }
 usaki-core = { path = "crates/usaki-core" }
