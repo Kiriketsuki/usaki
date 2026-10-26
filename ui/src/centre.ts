@@ -1,17 +1,47 @@
-// Centre selection and text, ported from docs/design/mockup/Main.dc.html. Milestone 1
-// has the auto mode only. Right-click and middle-click come in milestone 2.
+// The auto pick and the cell text. The auto pick comes from docs/design/mockup/Main.dc.html.
+// Milestone 1 has the auto mode only. Right-click and middle-click come in milestone 2.
 
 import { left, minutesUntil } from './countdown';
-import { type AccountView, fiveHour } from './usage';
+import { type AccountView, FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES, type WindowNow, fiveHour, windowAt } from './usage';
 
-export interface CentreText {
-  top: string;
-  centre: string;
-  sub: string;
+/** The percent and the countdown of one window, as the cell shows them. */
+export interface WindowText {
+  pct: string;
+  countdown: string;
 }
 
-/** The text of the States artboard "Stale" cell: no live account to show. */
-export const NO_DATA: CentreText = { top: 'no data', centre: '--', sub: 'offline' };
+/** The text of one cell: the account name, then the 5h window on the left and the 7d window on the right. */
+export interface CellText {
+  name: string;
+  five: WindowText;
+  seven: WindowText;
+}
+
+/** The countdown of a window with no reset time or a reset that has passed. */
+export const READY = 'ready';
+
+const MISSING: WindowText = { pct: '--', countdown: '--' };
+
+/** The text of the one cell that shows when no account exists. */
+export const NO_DATA: CellText = { name: 'no data', five: MISSING, seven: MISSING };
+
+/** The text of one window. A missing window shows `--`. A ready window shows 0% and `ready`. */
+export function windowText(w: WindowNow | null, now: number): WindowText {
+  if (!w) return MISSING;
+  return {
+    pct: Math.round(w.pct) + '%',
+    countdown: w.ready || w.resetsAt == null ? READY : left(minutesUntil(w.resetsAt, now))
+  };
+}
+
+/** The text of the cell of `account` at `now`. */
+export function cellText(account: AccountView, now: number): CellText {
+  return {
+    name: account.id,
+    five: windowText(windowAt(account, FIVE_HOUR_MINUTES, now), now),
+    seven: windowText(windowAt(account, SEVEN_DAY_MINUTES, now), now)
+  };
+}
 
 // A reset that has passed or that is not known cannot be the next reset, so it sorts last.
 function nextResetKey(account: AccountView, now: number): number {
@@ -27,16 +57,4 @@ export function pickAuto(accounts: readonly AccountView[], now: number): Account
       (best, a) => (best == null || nextResetKey(a, now) < nextResetKey(best, now) ? a : best),
       null
     );
-}
-
-/** The three centre lines: the mode, the countdown, and `<short> · <pct>%`. */
-export function centreText(accounts: readonly AccountView[], now: number): CentreText {
-  const shown = pickAuto(accounts, now);
-  if (!shown) return NO_DATA;
-  const five = fiveHour(shown, now);
-  return {
-    top: 'next 5h',
-    centre: five.resetsAt == null ? '--' : left(minutesUntil(five.resetsAt, now)),
-    sub: shown.id + ' · ' + Math.round(five.pct) + '%'
-  };
 }

@@ -9,7 +9,9 @@ export function account(
   id: string,
   pct: number,
   resetInMins: number | null,
-  stale = false
+  stale = false,
+  sevenPct = 10,
+  sevenResetMins: number | null = 3 * 1440
 ): AccountView {
   return {
     id,
@@ -17,7 +19,7 @@ export function account(
     fetchedAt: NOW,
     windows: [
       { minutes: 300, usedPct: pct, resetsAt: resetInMins == null ? null : NOW + resetInMins * MIN },
-      { minutes: 10080, usedPct: 10, resetsAt: NOW + 3 * 1440 * MIN }
+      { minutes: 10080, usedPct: sevenPct, resetsAt: sevenResetMins == null ? null : NOW + sevenResetMins * MIN }
     ],
     error: null
   };

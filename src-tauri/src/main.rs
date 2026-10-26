@@ -3,6 +3,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod accounts;
+#[cfg(target_os = "linux")]
+mod hyprland;
 mod poller;
 mod view;
 mod window;
@@ -21,6 +23,23 @@ const BUBBLE_LABEL: &str = "bubble";
 #[tauri::command]
 async fn get_usage(cache_dir: State<'_, CacheDir>) -> Result<UsageUpdate, String> {
     poller::poll_in_background(cache_dir.inner().clone()).await
+}
+
+/// Sets the bubble size. The page calls it when the cell count changes the cluster size.
+/// On Hyprland the app then moves the window back, so the top-left corner stays put.
+#[tauri::command]
+fn set_bubble_size(window: tauri::WebviewWindow, width: i32, height: i32) -> Result<(), String> {
+    let (width, height) = window::checked_size(width, height)?;
+    #[cfg(target_os = "linux")]
+    let before = hyprland::is_hyprland()
+        .then(hyprland::own_position)
+        .flatten();
+    window::set_size(&window, width, height).map_err(|e| e.to_string())?;
+    #[cfg(target_os = "linux")]
+    if let Some(at) = before {
+        hyprland::restore_position(at);
+    }
+    Ok(())
 }
 
 fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -45,7 +64,7 @@ fn main() {
     window::prepare_linux();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_usage])
+        .invoke_handler(tauri::generate_handler![get_usage, set_bubble_size])
         .setup(setup)
         .run(tauri::generate_context!())
         .expect("usaki cannot start.");

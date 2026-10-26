@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { NO_DATA, centreText, pickAuto } from './centre';
+import { READY, cellText, pickAuto, windowText } from './centre';
 import { NOW, account } from './test-fixtures';
+import type { AccountView } from './usage';
 
 describe('pickAuto', () => {
   it('picks the live account with the earliest 5h reset', () => {
@@ -24,21 +25,40 @@ describe('pickAuto', () => {
   });
 });
 
-describe('centreText', () => {
-  it('shows the mode, the countdown and the short name with the percent', () => {
-    const accts = [account('acc1', 42, 133), account('acc2', 81, 47)];
-    expect(centreText(accts, NOW)).toEqual({ top: 'next 5h', centre: '47m', sub: 'acc2 · 81%' });
+describe('cellText', () => {
+  it('shows the name, then the 5h and the 7d percent and countdown', () => {
+    expect(cellText(account('acc2', 33, 72, false, 58, 2 * 1440 + 4 * 60), NOW)).toEqual({
+      name: 'acc2',
+      five: { pct: '33%', countdown: '1h12m' },
+      seven: { pct: '58%', countdown: '2d04h' }
+    });
   });
 
-  it('rounds the percent', () => {
-    expect(centreText([account('acc1', 41.6, 133)], NOW).sub).toBe('acc1 · 42%');
+  it('rounds both percents', () => {
+    const t = cellText(account('acc1', 41.6, 133, false, 57.5), NOW);
+    expect([t.five.pct, t.seven.pct]).toEqual(['42%', '58%']);
   });
 
-  it('shows -- for an unknown reset', () => {
-    expect(centreText([account('acc1', 42, null)], NOW).centre).toBe('--');
+  it('shows ready and 0% for a 5h window with no reset time', () => {
+    expect(cellText(account('acc1', 0, null, false, 100), NOW).five).toEqual({ pct: '0%', countdown: READY });
   });
 
-  it('shows no data when no account is live', () => {
-    expect(centreText([account('acc1', 42, 10, true)], NOW)).toEqual(NO_DATA);
+  it('shows ready and 0% for a window whose reset has passed', () => {
+    expect(cellText(account('acc1', 90, -1), NOW).five).toEqual({ pct: '0%', countdown: READY });
+  });
+
+  it('shows a full 7d window as 100% with its countdown', () => {
+    expect(cellText(account('acc1', 0, null, false, 100, 30), NOW).seven).toEqual({ pct: '100%', countdown: '30m' });
+  });
+});
+
+describe('windowText', () => {
+  it('shows -- for a missing window', () => {
+    expect(windowText(null, NOW)).toEqual({ pct: '--', countdown: '--' });
+  });
+
+  it('shows the countdown under a day in hours and minutes', () => {
+    const a: AccountView = account('acc1', 20, 10, false, 50, 23 * 60 + 59);
+    expect(cellText(a, NOW).seven.countdown).toBe('23h59m');
   });
 });

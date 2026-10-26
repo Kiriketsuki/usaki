@@ -1,48 +1,117 @@
 // Turns the backend data into what the bubble draws. It holds no DOM code.
 
-import { type CentreText, centreText } from './centre';
+import { type CellText, NO_DATA, READY, type WindowText, cellText, pickAuto } from './centre';
 import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
 import { type EarState, earState } from './ears';
-import { type UsageUpdate, fiveHour } from './usage';
+import { type CellFit, fitCell } from './fit';
+import { type Cell, type Layout, layout } from './layout';
+import { type AccountView, type UsageUpdate, fiveHour, sevenDay } from './usage';
 
 export interface RingView {
   pct: number;
   color: string;
+}
+
+/** One hex cell. A cell with no rings is the no data cell. */
+export interface CellView {
+  x: number;
+  y: number;
+  /** The radius in px. The head is bigger than a body cell. */
+  r: number;
+  /** The id of the account in the cell, or null for the no data cell. */
+  id: string | null;
+  rings: { five: RingView; seven: RingView } | null;
+  text: CellText;
+  fit: CellFit;
+  /** True for a stale account. The cell then dims. */
   dim: boolean;
+  /** True for the auto account, the one whose 5h window resets next. */
+  highlight: boolean;
 }
 
 export interface BubbleView {
-  rings: RingView[];
+  cells: CellView[];
+  layout: Layout;
   ears: EarState;
   /** True when no account is live. The whole bubble then dims. */
   dim: boolean;
-  text: CentreText;
   label: string;
 }
 
-function ariaLabel(text: CentreText): string {
-  if (text.centre === '--') return 'AI usage. No fresh data.';
-  return 'AI usage. ' + text.sub + ' used in the 5 hour window, resets in ' + text.centre + '.';
+function ringView(pct: number, thresholds: Thresholds): RingView {
+  return { pct, color: tone(pct, thresholds) };
 }
 
-/** Returns the bubble at `now`. The rings show the 5h window, one ring per account. */
+function spoken(w: WindowText): string {
+  if (w.pct === '--') return 'no data';
+  if (w.countdown === READY) return w.pct + ' used, ready';
+  return w.pct + ' used, resets in ' + w.countdown;
+}
+
+// The label carries the full account name, so a screen reader hears it even when the
+// fit cuts it on screen.
+function ariaLabel(shown: AccountView | null, now: number): string {
+  if (!shown) return 'AI usage. No fresh data.';
+  const t = cellText(shown, now);
+  return (
+    'AI usage. Next reset: ' + t.name + '. 5 hour window: ' + spoken(t.five) +
+    '. 7 day window: ' + spoken(t.seven) + '.'
+  );
+}
+
+function noDataCell(at: Cell): CellView {
+  return { ...at, id: null, rings: null, text: NO_DATA, fit: fitCell(NO_DATA), dim: false, highlight: false };
+}
+
+/**
+ * Puts the accounts in cell order. The auto account is the head, cell 0. With no live
+ * account the first account is the head. The others follow in account order as the body.
+ */
+export function headFirst(accounts: readonly AccountView[], auto: AccountView | null): AccountView[] {
+  const head = auto ?? accounts[0];
+  return head ? [head, ...accounts.filter((a) => a !== head)] : [];
+}
+
+/**
+ * Returns the bubble at `now`: one hex cell per account, laid out as a rabbit. The auto
+ * account is the head and carries the ears. Each cell has a 7d ring outside and a 5h ring
+ * inside it.
+ */
 export function bubbleView(
   update: UsageUpdate | null,
   now: number,
   thresholds: Thresholds = DEFAULT_THRESHOLDS
 ): BubbleView {
   const accounts = update?.accounts ?? [];
-  const rings = accounts.map((a) => {
-    const pct = fiveHour(a, now).pct;
-    return { pct, color: tone(pct, thresholds), dim: a.stale };
-  });
-  const live = rings.filter((r) => !r.dim).map((r) => r.pct);
-  const text = centreText(accounts, now);
+  const lay = layout(accounts.length);
+  const shown = pickAuto(accounts, now);
+  const cells =
+    accounts.length === 0
+      ? [noDataCell(lay.cells[0])]
+      : headFirst(accounts, shown).map((a, i) => {
+          const text = cellText(a, now);
+          return {
+            ...lay.cells[i],
+            id: a.id,
+            rings: {
+              five: ringView(fiveHour(a, now).pct, thresholds),
+              seven: ringView(sevenDay(a, now).pct, thresholds)
+            },
+            text,
+            fit: fitCell(text),
+            dim: a.stale,
+            highlight: a === shown
+          };
+        });
+  // The right ear follows the live 5h windows and the left ear the live 7d windows.
+  const live = accounts
+    .filter((a) => !a.stale)
+    .map((a) => ({ five: fiveHour(a, now).pct, seven: sevenDay(a, now).pct }));
   return {
-    rings,
+    cells,
+    layout: lay,
     ears: earState(live, thresholds.crit),
     dim: live.length === 0,
-    text,
-    label: ariaLabel(text)
+    label: ariaLabel(shown, now)
   };
 }

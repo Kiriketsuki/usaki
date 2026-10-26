@@ -1,38 +1,112 @@
-// Hex and ring geometry, ported from docs/design/mockup/Bubble.dc.html.
+// Hex and ring geometry. hexPath and the ring dash come from docs/design/mockup/Bubble.dc.html.
+// Issue #11 replaces the one big hex with a cluster of small hex cells, one per account.
 
-/** The centre of the 152 x 152 hex box. */
-export const C = 76;
-/** The radius of the hex outline. */
-export const OUTLINE_R = 75;
+/** The ratio of the apothem (centre to edge) to the radius (centre to corner) of a hexagon. */
+export const APOTHEM = 0.866;
+/**
+ * The radius of a body cell, centre to corner. A body cell is 100 px corner to corner, 87 px
+ * flat to flat. A smaller cell cannot hold a 6 character 7d countdown, such as 23h59m, inside
+ * the 5h ring.
+ */
+export const CELL_R = 50;
+/** The apothem of a body cell. */
+export const CELL_APOTHEM = CELL_R * APOTHEM;
+/**
+ * The radius of the head cell, 120 px corner to corner. The head is the body cell design
+ * scaled by HEAD_R / CELL_R, so it is the biggest cell and carries the ears.
+ */
+export const HEAD_R = 60;
 
 /**
- * A flat-top hexagon path that starts at the top centre and runs clockwise.
+ * A flat-top hexagon path around (cx, cy) that starts at the top centre and runs clockwise.
  * The ring progress then grows from 12 o'clock.
  */
-export function hexPath(r: number): string {
-  const h = r * 0.866;
-  return 'M ' + C + ' ' + (C - h) +
-    ' L ' + (C + r / 2) + ' ' + (C - h) +
-    ' L ' + (C + r) + ' ' + C +
-    ' L ' + (C + r / 2) + ' ' + (C + h) +
-    ' L ' + (C - r / 2) + ' ' + (C + h) +
-    ' L ' + (C - r) + ' ' + C +
-    ' L ' + (C - r / 2) + ' ' + (C - h) + ' Z';
+export function hexPath(r: number, cx: number, cy: number): string {
+  const h = r * APOTHEM;
+  return 'M ' + cx + ' ' + (cy - h) +
+    ' L ' + (cx + r / 2) + ' ' + (cy - h) +
+    ' L ' + (cx + r) + ' ' + cy +
+    ' L ' + (cx + r / 2) + ' ' + (cy + h) +
+    ' L ' + (cx - r / 2) + ' ' + (cy + h) +
+    ' L ' + (cx - r) + ' ' + cy +
+    ' L ' + (cx - r / 2) + ' ' + (cy - h) + ' Z';
 }
 
-export interface RingGeometry {
-  d: string;
-  sw: number;
+/** The six corners of a flat-top hexagon around (cx, cy), clockwise from the top right. */
+export function hexCorners(r: number, cx: number, cy: number): [number, number][] {
+  const h = r * APOTHEM;
+  return [
+    [cx + r / 2, cy - h],
+    [cx + r, cy],
+    [cx + r / 2, cy + h],
+    [cx - r / 2, cy + h],
+    [cx - r, cy],
+    [cx - r / 2, cy - h]
+  ];
 }
 
 /**
- * Returns the path and stroke width of ring `index` in a bubble of `count` rings.
- * Ring 0 is the outermost. More than 4 rings use a tighter step and a thinner stroke.
+ * One ring of a cell. `r` is the radius of the path, at the middle of the stroke. `outer`
+ * and `inner` are the apothems of the two stroke edges. A stroke grows sw / 2 to each side
+ * of the path, at a right angle to each hex side, so the edges are apothems and not radii.
  */
-export function ringGeometry(index: number, count: number): RingGeometry {
-  const dense = count > 4;
-  const step = dense ? 8 : 10;
-  return { d: hexPath(66 - index * step), sw: dense ? 5 : 6 };
+export interface RingGeometry {
+  r: number;
+  sw: number;
+  outer: number;
+  inner: number;
+}
+
+/** The clear space between the cell outline and the outer ring of a body cell, in px. */
+const RING_INSET = 1.5;
+/** Both rings have the same stroke, so neither reads as the cell outline. The gap is in px too. */
+export const RING_SW = 3;
+export const RING_GAP = 1.5;
+
+function ring(outer: number, sw: number): RingGeometry {
+  return { r: (outer - sw / 2) / APOTHEM, sw, outer, inner: outer - sw };
+}
+
+/** The two rings of a cell of radius `r`. The 7d ring is the outer ring and the 5h ring the inner ring. */
+export interface CellRings {
+  seven: RingGeometry;
+  five: RingGeometry;
+}
+
+/**
+ * Returns the rings of a cell of radius `r`. Every size of cell is the body cell design
+ * scaled by r / CELL_R, so the strokes, the gap and the inset scale with it.
+ */
+export function cellRings(r: number): CellRings {
+  const k = r / CELL_R;
+  const seven = ring(r * APOTHEM - RING_INSET * k, RING_SW * k);
+  return { seven, five: ring(seven.inner - RING_GAP * k, RING_SW * k) };
+}
+
+/** The rings of a body cell. */
+export const { seven: SEVEN_RING, five: FIVE_RING } = cellRings(CELL_R);
+
+/** The width of the start notch of a body cell ring, in px. */
+export const NOTCH_W = 1.5;
+
+/**
+ * Returns the polygon points of the start notch of `ring` in a cell of radius `r` at
+ * (cx, cy). The notch is a thin cut across the ring at 12 o'clock, where the progress
+ * starts. It marks the start, and it breaks a full ring, so a 100% ring does not read as the
+ * cell outline. It overshoots each ring edge by 0.5 px, so no thin line of colour stays.
+ */
+export function ringNotch(ring: RingGeometry, r: number, cx: number, cy: number): string {
+  const half = (NOTCH_W * r) / CELL_R / 2;
+  const top = cy - ring.outer - 0.5;
+  const bottom = cy - ring.inner + 0.5;
+  return [
+    [cx - half, top],
+    [cx + half, top],
+    [cx + half, bottom],
+    [cx - half, bottom]
+  ]
+    .map(([x, y]) => x + ',' + y)
+    .join(' ');
 }
 
 /** The stroke-dasharray of a ring with pathLength 100. It clamps pct to 0..100. */
