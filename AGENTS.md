@@ -2,37 +2,55 @@
 
 ## Overview
 
-usaKi is a floating desktop widget for Linux (Hyprland) and Windows 11. It shows the usage of
-each AI subscription: the 5h and 7d windows, the % used and the reset time. One account is one
-flat-top hex cell, and the cells form a rabbit. The account that resets next is the big head cell
-with the ears. The others are smaller body cells. Each cell has a 7d ring outside a 5h ring. The cell
-shows both percents and both countdowns, 5h on the left and 7d on the right. A click opens the
-bubble into a card with the full detail.
+usaKi is a floating desktop widget for Linux (Hyprland). A Windows 11 build is on the roadmap but
+has no test yet. The widget shows the usage of each AI subscription: the 5h and 7d windows, the %
+used and the reset time.
+
+One account is one flat-top hex cell, and the cells form a front-view rabbit. The head cell is
+the biggest and carries the ears. It shows the account whose 5h window resets next. The other
+accounts are smaller body cells. Each cell has a 7d ring outside a 5h ring. The cell shows both
+percents, the name with a provider mark and both countdowns, 5h on the left and 7d on the right.
+A glass backplate joins the cells, the ears and the foot pads. A click opens the bubble into a
+card with the full detail.
 
 The name comes from usagi, Japanese for rabbit. The app carries a rabbit identity throughout.
 
 ## Status
 
-The user approved the design. Milestone 1 has the Tauri scaffold and a bubble that shows live Claude
-cache data. Read `.claude/handoffs/` for the latest handoff.
+The MVP is done. These parts exist:
+
+- The Tauri app and a pinned toplevel bubble with the `usaki-bubble` Hyprland rule
+- The Claude statusline cache provider and the Claude watcher logins
+- The Codex session log provider, with provider marks on the cells
+- The rabbit layout: head and body cells, mosaic ears that fold, foot pads and the backplate
+- The card, the mouse and keyboard controls, and the saved position and screen
+
+Not built yet: `config.toml`, the settings window, the tray, start on login, onboarding (#14),
+Gemini, a Codex watcher through `codex app-server`, and the Windows build. Read
+`.claude/handoffs/` for the latest handoff.
 
 ## Design sources
 
 | File | Content |
 |---|---|
-| `docs/design/plan.md` | Approved design, architecture and milestones |
-| `docs/design/mockup/*.dc.html` | Mockup artboards (Main, Bubble, Card, States, Settings) |
-| https://claude.ai/artifact/GV4AetCYbFgVsAzGFz6KH2 | The same mockup as a live canvas |
+| `docs/design/plan.md` | Current design, decisions log and milestones |
+| `ui/src/layout.ts` | The rabbit layout and the window size for each cell count |
+| `ui/src/geometry.ts` | Hex paths, cell sizes, the ring pair and the empty track |
+| `ui/src/ears.ts` | The mosaic ears and the fold rule |
+| `ui/src/plate.ts` | The backplate |
+| `docs/design/claude-cache.md` | The statusline cache file contract |
+| `docs/design/watcher-logins.md` | The Claude watcher logins |
+| `docs/design/codex-logs.md` | The Codex session log reader |
+| `docs/design/mockup/*.dc.html` | The approved mockup of 2026-10-23. It is historical. |
 
-The mockup is the visual spec. Port its HTML, SVG and ring maths. Do not redesign them. One
-exception: issue #11 replaced the single hex with a honeycomb of cells and redrew the ears. For
-the bubble, `ui/src/layout.ts`, `ui/src/geometry.ts` and `ui/src/ears.ts` lead until the mockup
-catches up.
+The code leads. The mockup shows the approved design of 2026-10-23. Since then the code has
+added tiled cells, ring pairs, the rabbit layout and the provider marks. Change the code and
+`plan.md`, not the mockup.
 
 ## Stack
 
 - Tauri v2, one codebase for Linux and Windows. The app crate is `src-tauri/`.
-- Rust backend: providers, poller, config, window position. The shared model and the
+- Rust backend: providers, poller, watcher loop, window position. The shared model and the
   providers are in `crates/usaki-core/`.
 - Vite and vanilla TypeScript frontend in `ui/`, with no UI framework. bun manages the
   packages and runs the scripts. Never use npm, pnpm or npx.
@@ -49,7 +67,8 @@ Run the bun commands in `ui/` and the cargo commands at the repo root.
 |---|---|
 | Install the frontend packages | `bun install` |
 | Run the app with hot reload | `bun run tauri dev` |
-| Build the app binary | `bun run tauri build --no-bundle` |
+| Build a debug binary | `bun run tauri build --no-bundle --debug` |
+| Build a release binary | `bun run tauri build --no-bundle` |
 | Frontend tests (vitest) | `bun run test` |
 | Rust tests | `cargo test --workspace` |
 | Format check | `cargo fmt --all --check` |
@@ -58,6 +77,8 @@ Run the bun commands in `ui/` and the cargo commands at the repo root.
 - `bun run test` runs vitest. Do not use `bun test`, which starts the bun test runner.
 - A plain `cargo build` gives a dev binary that loads the Vite dev server. Use
   `bun run tauri build` for a binary with the page inside it.
+- On Linux the app sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` itself when the variable is unset
+  (`src-tauri/src/window.rs`). It keeps a value that the user sets.
 - The window position lives in `dirs::state_dir()/usaki/position.json` (the data folder on
   Windows). `USAKI_STATE_DIR` replaces that folder, so a test run never writes the real file.
 - A debug build reads `USAKI_DEBUG_UI`, a comma-separated list of `right`, `middle`, `open` and
@@ -76,12 +97,23 @@ Run the bun commands in `ui/` and the cargo commands at the repo root.
   second source. For a watcher login, usaKi reads the token read-only and calls the read-only
   usage API, at most every 5 minutes per account. A fresh cache file wins. See
   `docs/design/watcher-logins.md`.
-- **Codex data:** read `~/.codex/sessions` logs. Map windows by `window_minutes`, not by name.
-- **Hexagon only.** No circle variant.
-- **Mouse:** a left-drag moves the widget. A left-click expands it. A right-click shows the next
-  account in the centre and wraps, and it never goes to auto. A middle-click returns to auto.
-- **Theme:** Chrysaki. Zero border-radius, Inter and Fira Code, no emoji. A 220 ms hop on reset
-  is the one approved exception to the Chrysaki no-bounce rule.
+- **Codex data:** read `$CODEX_HOME/sessions` logs (`~/.codex/sessions` by default). Map windows
+  by `window_minutes`, not by name. Never read `~/.codex/auth.json`.
+- **Hexagon only.** Every shape is a flat-top hex: the cells, the ear mosaic, the foot pads and
+  the backplate. No circle variant.
+- **Mouse:** a left-drag moves the widget. A left-click expands it into the card. A right-click
+  pins the next account into the head and wraps, and it never goes to auto. A middle-click
+  returns the head to auto.
+- **Theme:** Chrysaki. Zero border-radius, Inter and Fira Code, no emoji. The bubble has no drop
+  shadow, because the window edge cuts it into a visible rectangle. A 220 ms hop on reset is the
+  one approved exception to the Chrysaki no-bounce rule.
+- **Provider colours:** the mark accent comes from `PROVIDER_COLOUR` in `ui/src/marks.ts`. The
+  rings keep the usage tones.
+
+  | Provider | Mark | Accent |
+  |---|---|---|
+  | Claude | Starburst | `#D97757` terracotta |
+  | Codex | Chevron | `#20969c` teal |
 
 ## Conventions
 
