@@ -93,11 +93,11 @@ describe('layout', () => {
 
   it('sizes the window for each count from 1 to 6', () => {
     const sizes = [1, 2, 3, 4, 5, 6].map((n) => [layout(n).width, layout(n).height]);
-    expect(sizes).toEqual([[134, 233], [144, 293], [299, 257], [299, 338], [299, 383], [299, 347]]);
+    expect(sizes).toEqual([[143, 241], [153, 301], [308, 265], [308, 346], [308, 391], [308, 355]]);
   });
 
   it('sizes the one cell window to match the Rust start size', () => {
-    expect([layout(1).width, layout(1).height]).toEqual([134, 233]);
+    expect([layout(1).width, layout(1).height]).toEqual([143, 241]);
   });
 
   it('keeps 6 accounts under 360 px tall, with the head between two shoulders', () => {

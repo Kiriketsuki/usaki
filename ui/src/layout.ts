@@ -1,12 +1,13 @@
 // The rabbit layout. Issue #21 draws the bubble as a front-view rabbit. The auto account is the
 // head: the biggest cell, with the ears on it. The other accounts are smaller body cells below
 // the head. Every pair of cells that touch has the same gap, and no two cells overlap. Small
-// decor hexes form the ears and the foot pads. The function also gives the window size that
-// holds the cells and the decor.
+// decor hexes form the ears and the foot pads, and a backplate joins everything. The function
+// also gives the window size that holds the plate and its edge line.
 
 import { allEarCells } from './ears';
 import { APOTHEM, CELL_APOTHEM, CELL_GAP, CELL_R, type Cell, HEAD_R, cellGap } from './geometry';
 import { type Decor, footPads } from './pads';
+import { PLATE_EDGE_W, plateHexes } from './plate';
 
 export { CELL_GAP, type Cell, cellGap };
 export type { Decor };
@@ -76,7 +77,7 @@ function rawCells(count: number): Cell[] {
   return [head, ...Array.from({ length: body }, (_, i) => bodyCell(bodySite(i)))];
 }
 
-/** The clear space around the cells and the decor, in px. */
+/** The clear space between the plate edge line and the window border, in px. */
 export const PAD = 2;
 
 export interface Layout {
@@ -97,24 +98,25 @@ function extent(h: Cell): { x0: number; x1: number; y0: number; y1: number } {
 
 /**
  * Returns the layout of `count` accounts. Zero accounts still get the head cell, for the no
- * data text. The window holds the cells, the ears of every fold state, the foot pads and PAD
- * on each side. The layout depends on the count only, so a new head or a fold does not change
- * the window size.
+ * data text. The window holds the plate of every fold state, its edge line and PAD on each
+ * side, so no pixel at the window border shows. The layout depends on the count only, so a
+ * new head or a fold does not change the window size.
  */
 export function layout(count: number): Layout {
   const raw = rawCells(Math.max(1, count));
   const head = raw[0];
   const top = head.y - HEAD_A;
   const pads = footPads(raw);
-  const all = [...raw, ...pads, ...allEarCells(head.x, top)].map(extent);
-  const dx = PAD - Math.min(...all.map((e) => e.x0));
-  const dy = PAD - Math.min(...all.map((e) => e.y0));
+  const all = plateHexes([...raw, ...pads, ...allEarCells(head.x, top)]).map(extent);
+  const margin = PAD + PLATE_EDGE_W;
+  const dx = margin - Math.min(...all.map((e) => e.x0));
+  const dy = margin - Math.min(...all.map((e) => e.y0));
   const shift = <T extends Cell>(c: T): T => ({ ...c, x: c.x + dx, y: c.y + dy });
   return {
     cells: raw.map(shift),
     pads: pads.map(shift),
     earBase: top + dy,
-    width: Math.ceil(Math.max(...all.map((e) => e.x1)) + dx + PAD),
-    height: Math.ceil(Math.max(...all.map((e) => e.y1)) + dy + PAD)
+    width: Math.ceil(Math.max(...all.map((e) => e.x1)) + dx + margin),
+    height: Math.ceil(Math.max(...all.map((e) => e.y1)) + dy + margin)
   };
 }

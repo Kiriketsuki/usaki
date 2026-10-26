@@ -16,7 +16,9 @@ import {
   ringNotch,
   trackDots
 } from './geometry';
+import type { Decor } from './layout';
 import { PROVIDER_COLOUR, markPoints } from './marks';
+import { PLATE_EDGE_W, platePath, plateHexes } from './plate';
 import type { BubbleView, CellView, RingView } from './model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -28,8 +30,10 @@ const TRACK_DOT_R = 0.8;
 /** The notch takes the glass tone, so it reads as a cut in the ring. */
 const NOTCH = '#161821';
 const EDGE = 'rgba(255,255,255,0.12)';
-/** Each decor hex keeps the faint edge of the old polygon ears, so a dark hex shows on a dark desktop. */
-const DECOR_EDGE_SW = 0.75;
+/** The light line along the outside of the plate: the Chrysaki text tone at a low opacity. */
+const PLATE_EDGE = '#e0e2ea';
+const PLATE_EDGE_OPACITY = 0.2;
+const PLATE_MASK_ID = 'plate-mask';
 const HIGHLIGHT = '#e0e2ea';
 const HIGHLIGHT_SW = 1.5;
 /** A pinned head swaps the bright outline for the amethyst of the inner ear. */
@@ -64,19 +68,33 @@ function part<T extends Element>(root: ParentNode, selector: string): T {
 }
 
 // A small decor hex of the ears or the foot pads. Decor has no ring and no text.
-function decorNode(d: { x: number; y: number; r: number; fill: string }): SVGElement {
-  return svg('polygon', {
-    points: hexCorners(d.r, d.x, d.y).map((p) => p.join(',')).join(' '),
-    fill: d.fill,
-    stroke: EDGE,
-    'stroke-width': DECOR_EDGE_SW
-  });
+function decorNode(d: Decor): SVGElement {
+  return svg('polygon', { points: hexCorners(d.r, d.x, d.y).map((p) => p.join(',')).join(' '), fill: d.fill });
 }
 
-// The ears and the foot pads draw in the unclipped ears layer, outside the cell glass.
-function decorNodes(view: BubbleView): SVGElement[] {
+// The decor hexes of the current fold state: both ears, then the foot pads.
+function decorOf(view: BubbleView): Decor[] {
   const top = view.layout.cells[0];
-  return [...ears(view.ears, top.x, view.layout.earBase).flat(), ...view.layout.pads].map(decorNode);
+  return [...ears(view.ears, top.x, view.layout.earBase).flat(), ...view.layout.pads];
+}
+
+// The light line along the outside of the plate. Each padded hex gets a stroke, and a mask
+// hides every part of a stroke that falls on the plate. Only the outer half of the outline of
+// the union stays, PLATE_EDGE_W wide, with no line where two padded hexes overlap.
+function plateEdgeNodes(d: string, width: number, height: number): SVGElement[] {
+  const mask = svg('mask', { id: PLATE_MASK_ID, maskUnits: 'userSpaceOnUse', x: 0, y: 0, width, height });
+  mask.append(svg('rect', { width, height, fill: '#fff' }), svg('path', { d, fill: '#000' }));
+  const defs = svg('defs', {});
+  defs.append(mask);
+  const edge = svg('path', {
+    d,
+    fill: 'none',
+    stroke: PLATE_EDGE,
+    'stroke-opacity': PLATE_EDGE_OPACITY,
+    'stroke-width': 2 * PLATE_EDGE_W,
+    mask: 'url(#' + PLATE_MASK_ID + ')'
+  });
+  return [defs, edge];
 }
 
 // A ring is a track path and a progress path on top of it, as in the mockup.
@@ -193,18 +211,21 @@ export function renderBubble(root: HTMLElement, view: BubbleView): void {
   root.style.height = height + 'px';
   root.style.opacity = view.dim ? '0.55' : '1';
   root.setAttribute('aria-label', view.label);
-  for (const sel of ['.ears', '.cells']) {
+  for (const sel of ['.plate', '.cells']) {
     const el = part<SVGElement>(root, sel);
     el.setAttribute('width', String(width));
     el.setAttribute('height', String(height));
     el.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
   }
-  const glass = cells.map((c) => hexPath(c.r, c.x, c.y)).join(' ');
-  part<HTMLElement>(root, '.glass').style.clipPath = "path('" + glass + "')";
-  part<SVGElement>(root, '.ears').replaceChildren(...decorNodes(view));
+  // One glass fills the whole plate, so the cells, the ears and the feet read as one rabbit.
+  const decor = decorOf(view);
+  const plate = platePath(plateHexes([...cells, ...decor]));
+  part<HTMLElement>(root, '.glass').style.clipPath = "path('" + plate + "')";
+  part<SVGElement>(root, '.plate').replaceChildren(...plateEdgeNodes(plate, width, height));
   const pinned = view.mode === 'pinned';
   const head = view.cells[0];
   part<SVGElement>(root, '.cells').replaceChildren(
+    ...decor.map(decorNode),
     ...view.cells.map(cellNode),
     ...view.cells.filter((c) => c.highlight).map((c) => highlightNode(c, pinned)),
     ...(pinned && head ? [studNode(head)] : [])
