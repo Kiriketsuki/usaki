@@ -51,13 +51,32 @@ pub fn is_valid_account_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
+/// The file name of a cache file is `CACHE_FILE_PREFIX`, the account id, then `CACHE_FILE_SUFFIX`.
+pub const CACHE_FILE_PREFIX: &str = "claude-";
+/// See `CACHE_FILE_PREFIX`.
+pub const CACHE_FILE_SUFFIX: &str = ".json";
+
+/// Returns the usaki folder under `cache_dir`. All cache files live in it.
+pub fn usaki_cache_dir(cache_dir: &Path) -> PathBuf {
+    cache_dir.join("usaki")
+}
+
 /// Returns the cache file path for an account under `cache_dir`.
 ///
 /// The caller must check the id with `is_valid_account_id` first.
 pub fn cache_path(cache_dir: &Path, account_id: &str) -> PathBuf {
-    cache_dir
-        .join("usaki")
-        .join(format!("claude-{account_id}.json"))
+    usaki_cache_dir(cache_dir).join(format!(
+        "{CACHE_FILE_PREFIX}{account_id}{CACHE_FILE_SUFFIX}"
+    ))
+}
+
+/// Returns the account id in a cache file name, or `None` when the name is not a cache file.
+///
+/// The id must pass `is_valid_account_id`. `cache_path` is the inverse of this function.
+pub fn account_id_from_file_name(name: &str) -> Option<&str> {
+    name.strip_prefix(CACHE_FILE_PREFIX)
+        .and_then(|rest| rest.strip_suffix(CACHE_FILE_SUFFIX))
+        .filter(|id| is_valid_account_id(id))
 }
 
 /// Reads the statusline cache file of a Claude account.

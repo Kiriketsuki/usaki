@@ -25,6 +25,9 @@ Thumbs.db
 /src-tauri/target/
 /src-tauri/gen/
 
+# Frontend build output
+/ui/dist/
+
 # Node
 node_modules/
 
