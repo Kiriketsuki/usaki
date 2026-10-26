@@ -25,7 +25,7 @@ pub struct AccountView {
     pub stale: bool,
     pub fetched_at: i64,
     pub windows: Vec<WindowView>,
-    /// The read error, when the provider could not read the account. The account is then stale.
+    /// The read error or the stale reason. A read error makes the account stale.
     pub error: Option<String>,
 }
 
@@ -63,6 +63,7 @@ impl From<&Window> for WindowView {
 
 impl AccountView {
     /// Returns the view of a provider result. A failed read gives a stale account with no windows.
+    /// The stale reason of a snapshot goes into `error`.
     pub fn from_result(id: &str, result: usaki_core::Result<Snapshot>, now: DateTime<Utc>) -> Self {
         match result {
             Ok(snap) => Self {
@@ -70,7 +71,7 @@ impl AccountView {
                 stale: snap.stale,
                 fetched_at: millis(snap.fetched_at),
                 windows: snap.windows.iter().map(WindowView::from).collect(),
-                error: None,
+                error: snap.stale_reason.clone(),
             },
             Err(e) => Self {
                 id: id.to_owned(),
@@ -115,6 +116,15 @@ mod tests {
         assert_eq!(mins, [300, 10080, 60]);
         assert_eq!(view.windows[0].resets_at, Some(2_000_000));
         assert_eq!(view.windows[1].used_pct, 17.5);
+    }
+
+    #[test]
+    fn stale_reason_maps_to_error() {
+        let snap = Snapshot::new("acc1", Vec::new(), at(1_000), Source::ClaudeWatch, true)
+            .with_stale_reason("The usage API rejected the token (HTTP 401).");
+        let view = AccountView::from_result("acc1", Ok(snap), at(1_060));
+        assert!(view.stale);
+        assert!(view.error.unwrap().contains("401"));
     }
 
     #[test]
