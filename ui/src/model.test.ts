@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BLONDE, EMERALD, RUBY } from './colour';
 import { layout } from './layout';
 import { NOW, account } from './test-fixtures';
-import { bubbleView } from './model';
+import { CONTROLS_HINT, bubbleView } from './model';
 
 const update = (accounts: ReturnType<typeof account>[]) => ({ polledAt: NOW, accounts, error: null });
 
@@ -83,7 +83,7 @@ describe('bubbleView', () => {
     expect(view.cells[0].rings).toBeNull();
     expect(view.cells[0].text.name).toBe('no data');
     expect(view.dim).toBe(true);
-    expect(view.label).toBe('AI usage. No fresh data.');
+    expect(view.label).toBe('AI usage. No fresh data.' + CONTROLS_HINT);
   });
 
   it('shows 0% for a window whose reset passed after the poll', () => {
@@ -95,14 +95,15 @@ describe('bubbleView', () => {
     const view = bubbleView(update([account('longname12ch', 81, 47, false, 58)]), NOW);
     expect(view.label).toBe(
       'AI usage. Next reset: longname12ch. 5 hour window: 81% used, resets in 47m. ' +
-        '7 day window: 58% used, resets in 3d00h.'
+        '7 day window: 58% used, resets in 3d00h.' + CONTROLS_HINT
     );
   });
 
   it('says ready in the label for an unused 5h window', () => {
     const view = bubbleView(update([account('acc1', 0, null, false, 100, 90)]), NOW);
     expect(view.label).toBe(
-      'AI usage. Next reset: acc1. 5 hour window: 0% used, ready. 7 day window: 100% used, resets in 1h30m.'
+      'AI usage. Next reset: acc1. 5 hour window: 0% used, ready. 7 day window: 100% used, resets in 1h30m.' +
+        CONTROLS_HINT
     );
   });
 
@@ -110,5 +111,23 @@ describe('bubbleView', () => {
     const view = bubbleView(update([account('acc1', 0, null, false, 100, 90)]), NOW);
     expect(view.cells[0].rings).toEqual({ five: { pct: 0, color: EMERALD }, seven: { pct: 100, color: RUBY } });
     expect(view.ears).toBe('both');
+  });
+
+  it('puts a pinned account in the head and marks the pinned mode', () => {
+    const accts = [account('acc1', 42, 133), account('acc2', 81, 47), account('acc3', 5, 90)];
+    const auto = bubbleView(update(accts), NOW);
+    const pinned = bubbleView(update(accts), NOW, 'acc3');
+    expect(auto.mode).toBe('auto');
+    expect(pinned.mode).toBe('pinned');
+    expect(pinned.cells.map((c) => c.id)).toEqual(['acc3', 'acc1', 'acc2']);
+    expect(pinned.cells.map((c) => c.highlight)).toEqual([true, false, false]);
+    expect(pinned.label.startsWith('AI usage. Pinned: acc3.')).toBe(true);
+    expect([pinned.layout.width, pinned.layout.height]).toEqual([auto.layout.width, auto.layout.height]);
+  });
+
+  it('falls back to auto when the pinned account is gone', () => {
+    const view = bubbleView(update([account('acc1', 42, 133), account('acc2', 81, 47)]), NOW, 'acc9');
+    expect(view.mode).toBe('auto');
+    expect(view.cells[0].id).toBe('acc2');
   });
 });
