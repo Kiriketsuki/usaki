@@ -21,9 +21,24 @@ if (!root) throw new Error('The page has no #bubble element.');
 const bubble: HTMLElement = root;
 
 let latest: UsageUpdate | null = null;
+let windowSize = '';
+
+// The window size follows the cell count. The page asks the backend to resize only when
+// the size changes. The backend keeps the top-left corner in place.
+function fitWindow(width: number, height: number): void {
+  const size = width + 'x' + height;
+  if (size === windowSize) return;
+  windowSize = size;
+  invoke('set_bubble_size', { width, height }).catch((err) => {
+    windowSize = '';
+    console.error('usaki: Cannot resize the bubble window.', err);
+  });
+}
 
 function draw(): void {
-  renderBubble(bubble, bubbleView(latest, Date.now()));
+  const view = bubbleView(latest, Date.now());
+  renderBubble(bubble, view);
+  fitWindow(view.layout.width, view.layout.height);
 }
 
 function accept(update: UsageUpdate): void {
