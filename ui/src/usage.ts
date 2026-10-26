@@ -11,12 +11,27 @@ export interface WindowView {
   resetsAt: number | null;
 }
 
+/** The provider of an account. It is the first part of the wire id. */
+export type ProviderName = 'claude' | 'codex';
+
+/** The credits state of an account. The balance is the string that the provider gives. */
+export interface Credits {
+  hasCredits: boolean;
+  unlimited: boolean;
+  balance: string | null;
+}
+
 export interface AccountView {
+  /** The wire id, `<provider>:<name>`. The page keys pins by it. */
   id: string;
+  provider: ProviderName;
+  /** The account name that the cell shows. */
+  name: string;
   stale: boolean;
   fetchedAt: number;
   windows: WindowView[];
   error: string | null;
+  credits: Credits | null;
 }
 
 export interface UsageUpdate {
@@ -56,4 +71,13 @@ export function fiveHour(account: AccountView, now: number): WindowNow {
 /** Returns the 7d window of an account at `now`. A missing window reports 0%. */
 export function sevenDay(account: AccountView, now: number): WindowNow {
   return windowAt(account, SEVEN_DAY_MINUTES, now) ?? NO_WINDOW;
+}
+
+/**
+ * True for an account with a 7d window and no 5h window, such as Codex on the Pro plan. The
+ * cell then has no 5h ring, the 5h slots show `--`, and the head rule ranks the account last.
+ */
+export function weekOnly(account: AccountView): boolean {
+  const has = (minutes: number) => account.windows.some((w) => w.minutes === minutes);
+  return has(SEVEN_DAY_MINUTES) && !has(FIVE_HOUR_MINUTES);
 }

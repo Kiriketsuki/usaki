@@ -3,9 +3,10 @@
 // the fit a pure function, with no DOM measure.
 //
 // The cell text has three rows on one common centre. The top row holds the 5h percent on
-// the left and the 7d percent on the right. The middle row holds the name, where the hex is
-// widest. The bottom row holds the 5h countdown on the left and the 7d countdown on the
-// right. The two columns sit at fixed x, so each percent lines up with its countdown.
+// the left and the 7d percent on the right. The middle row holds the provider mark and the
+// name, where the hex is widest. The mark and the name centre on the cell as one group. The
+// bottom row holds the 5h countdown on the left and the 7d countdown on the right. The two
+// columns sit at fixed x, so each percent lines up with its countdown.
 
 import { type CellText } from './centre';
 import { APOTHEM, FIVE_RING } from './geometry';
@@ -21,6 +22,10 @@ export const COL_X = 14.5;
 /** The gap between two rows, in px. */
 const ROW_GAP = 1.5;
 const ELLIPSIS = '…';
+/** The side of the square box of the provider mark, in px. */
+export const MARK_SIZE = 9;
+/** The gap between the mark and the name, in px. */
+export const MARK_GAP = 2;
 
 export type Role = 'pct' | 'name' | 'countdown';
 
@@ -48,13 +53,21 @@ function rowY(): Record<Role, number> {
   return out;
 }
 
-/** The items of a cell, with the name as given. */
+// The space that the mark takes before the name, in px.
+function markLead(text: CellText): number {
+  return text.provider ? MARK_SIZE + MARK_GAP : 0;
+}
+
+/**
+ * The items of a cell, with the name as given. With a mark, the name moves right by half
+ * the mark lead, so the mark and the name centre on the cell together.
+ */
 export function cellItems(text: CellText, name = text.name): TextItem[] {
   const y = rowY();
   return [
     { text: text.five.pct, role: 'pct', x: -COL_X, y: y.pct },
     { text: text.seven.pct, role: 'pct', x: COL_X, y: y.pct },
-    { text: name, role: 'name', x: 0, y: y.name },
+    { text: name, role: 'name', x: markLead(text) / 2, y: y.name },
     { text: text.five.countdown, role: 'countdown', x: -COL_X, y: y.countdown },
     { text: text.seven.countdown, role: 'countdown', x: COL_X, y: y.countdown }
   ];
@@ -85,24 +98,41 @@ function cut(name: string, keep: number): string {
   return keep >= name.length ? name : name.slice(0, keep) + ELLIPSIS;
 }
 
-/** The fitted cell text: the name, cut if needed, and the placed items. */
+/** The centre of the provider mark, in px from the cell centre. */
+export interface MarkPlace {
+  x: number;
+  y: number;
+}
+
+/** The fitted cell text: the name, cut if needed, the placed items and the mark. */
 export interface CellFit {
   name: string;
   items: TextItem[];
+  /** The mark centre, or null for a cell with no provider. */
+  mark: MarkPlace | null;
+}
+
+// The mark sits at the left end of the name group.
+function markPlace(text: CellText, items: readonly TextItem[]): MarkPlace | null {
+  const name = items.find((i) => i.role === 'name');
+  if (!text.provider || !name) return null;
+  return { x: name.x - itemHalfWidth(name) - MARK_GAP - MARK_SIZE / 2, y: name.y };
 }
 
 /**
- * Fits the cell text inside the 5h ring. A 12 character name fits whole. A longer name loses
- * characters from the end and ends in an ellipsis. The percents and the countdowns always
- * stay whole, and the rows never move off the common centre.
+ * Fits the cell text inside the 5h ring. A 10 character name fits whole after the mark. A
+ * longer name loses characters from the end and ends in an ellipsis. The percents and the
+ * countdowns always stay whole, and the rows never move off the common centre. The name
+ * item with its offset spans the mark too, so the fit of the name also fits the mark.
  */
 export function fitCell(text: CellText): CellFit {
   for (let keep = text.name.length; keep >= 1; keep -= 1) {
     const name = cut(text.name, keep);
     const items = cellItems(text, name);
-    if (fits(items)) return { name, items };
+    if (fits(items)) return { name, items, mark: markPlace(text, items) };
   }
   // No cut fits. Only a percent of 1000 or more can cause this.
   const name = cut(text.name, 1);
-  return { name, items: cellItems(text, name) };
+  const items = cellItems(text, name);
+  return { name, items, mark: markPlace(text, items) };
 }

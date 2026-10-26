@@ -78,17 +78,25 @@ function windowNode(w: WindowRow): HTMLElement {
   return row;
 }
 
+// The credits row: the label and the balance as the provider gives it.
+function creditsNode(text: string): HTMLElement {
+  const row = html('div', 'credits');
+  row.append(html('span', 'label', 'credits'), html('span', 'balance', text));
+  return row;
+}
+
 function accountNode(a: AccountRow): HTMLElement {
   const block = html('div', 'acct');
-  block.style.height = CARD_ROW + 'px';
+  block.style.height = a.height + 'px';
   const title = html('div', 'title');
-  title.append(dotNode(a.dot), html('span', 'name', a.id));
+  title.append(dotNode(a.dot), html('span', 'name', a.name));
   if (a.tag) title.append(html('span', 'tag', a.tag));
   title.append(html('span', 'grow'));
   if (a.stale) title.append(staleNode(a.stale));
   const wins = html('div', 'wins');
   wins.style.opacity = a.stale ? String(STALE_ROWS) : '1';
   wins.append(...a.windows.map(windowNode));
+  if (a.credits != null) wins.append(creditsNode(a.credits));
   block.append(title, wins);
   return block;
 }

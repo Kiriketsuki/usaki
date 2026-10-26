@@ -57,6 +57,11 @@ body {
   transform: translate(-50%, -50%);
 }
 
+.cell-text .mark {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
 .pct {
   font-weight: 600;
   color: #e0e2ea;
@@ -214,6 +219,15 @@ body {
   grid-template-columns: 24px minmax(0, 1fr) 40px 12px 128px;
   gap: 10px;
   align-items: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+}
+
+.card .credits {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: 'Fira Code', monospace;
   font-size: 12px;
 }

@@ -10,11 +10,14 @@ const update = (accounts: AccountView[]) => ({ polledAt: NOW, accounts, error: n
 
 describe('cardSize', () => {
   it('holds the bar, the header and one block per account', () => {
-    expect(cardSize(4)).toEqual({ width: CARD_WIDTH, height: CARD_BAR + CARD_HEADER + 4 * CARD_ROW });
+    expect(cardSize([CARD_ROW, CARD_ROW, 65, 109])).toEqual({
+      width: CARD_WIDTH,
+      height: CARD_BAR + CARD_HEADER + 2 * CARD_ROW + 65 + 109
+    });
   });
 
   it('keeps one block for the no data text', () => {
-    expect(cardSize(0)).toEqual(cardSize(1));
+    expect(cardSize([])).toEqual(cardSize([CARD_ROW]));
   });
 });
 
@@ -82,7 +85,8 @@ describe('cardView', () => {
       ['acc3', null, 'stale']
     ]);
     expect(view.rows.map((r) => r.windows.map((w) => w.label))).toEqual([['5h', '7d'], ['5h', '7d'], ['5h', '7d']]);
-    expect([view.width, view.height]).toEqual([cardSize(3).width, cardSize(3).height]);
+    expect(view.rows.map((r) => r.height)).toEqual([CARD_ROW, CARD_ROW, CARD_ROW]);
+    expect([view.width, view.height]).toEqual([CARD_WIDTH, cardSize([CARD_ROW, CARD_ROW, CARD_ROW]).height]);
   });
 
   it('tags a pinned head', () => {
@@ -94,6 +98,6 @@ describe('cardView', () => {
     const view = cardView(null, NOW, AUTO);
     expect(view.rows).toEqual([]);
     expect(view.updated).toBe('no data');
-    expect(view.height).toBe(cardSize(0).height);
+    expect(view.height).toBe(cardSize([]).height);
   });
 });
