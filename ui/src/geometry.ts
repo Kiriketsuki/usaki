@@ -4,12 +4,18 @@
 /** The ratio of the apothem (centre to edge) to the radius (centre to corner) of a hexagon. */
 export const APOTHEM = 0.866;
 /**
- * The radius of one cell, centre to corner. A cell is 100 px corner to corner, 87 px flat to
- * flat. A smaller cell cannot hold a 6 character 7d countdown, such as 23h59m, inside the 5h ring.
+ * The radius of a body cell, centre to corner. A body cell is 100 px corner to corner, 87 px
+ * flat to flat. A smaller cell cannot hold a 6 character 7d countdown, such as 23h59m, inside
+ * the 5h ring.
  */
 export const CELL_R = 50;
-/** The apothem of one cell. */
+/** The apothem of a body cell. */
 export const CELL_APOTHEM = CELL_R * APOTHEM;
+/**
+ * The radius of the head cell, 120 px corner to corner. The head is the body cell design
+ * scaled by HEAD_R / CELL_R, so it is the biggest cell and carries the ears.
+ */
+export const HEAD_R = 60;
 
 /**
  * A flat-top hexagon path around (cx, cy) that starts at the top centre and runs clockwise.
@@ -51,8 +57,8 @@ export interface RingGeometry {
   inner: number;
 }
 
-/** The apothem of the outer edge of the outer ring. It keeps 1.5 px clear of the cell outline. */
-export const RING_OUTER = CELL_APOTHEM - 1.5;
+/** The clear space between the cell outline and the outer ring of a body cell, in px. */
+const RING_INSET = 1.5;
 /** Both rings have the same stroke, so neither reads as the cell outline. The gap is in px too. */
 export const RING_SW = 3;
 export const RING_GAP = 1.5;
@@ -61,9 +67,24 @@ function ring(outer: number, sw: number): RingGeometry {
   return { r: (outer - sw / 2) / APOTHEM, sw, outer, inner: outer - sw };
 }
 
-/** The 7d ring is the outer ring and the 5h ring the inner ring, as the user asked. */
-export const SEVEN_RING = ring(RING_OUTER, RING_SW);
-export const FIVE_RING = ring(SEVEN_RING.inner - RING_GAP, RING_SW);
+/** The two rings of a cell of radius `r`. The 7d ring is the outer ring and the 5h ring the inner ring. */
+export interface CellRings {
+  seven: RingGeometry;
+  five: RingGeometry;
+}
+
+/**
+ * Returns the rings of a cell of radius `r`. Every size of cell is the body cell design
+ * scaled by r / CELL_R, so the strokes, the gap and the inset scale with it.
+ */
+export function cellRings(r: number): CellRings {
+  const k = r / CELL_R;
+  const seven = ring(r * APOTHEM - RING_INSET * k, RING_SW * k);
+  return { seven, five: ring(seven.inner - RING_GAP * k, RING_SW * k) };
+}
+
+/** The rings of a body cell. */
+export const { seven: SEVEN_RING, five: FIVE_RING } = cellRings(CELL_R);
 
 /** The stroke-dasharray of a ring with pathLength 100. It clamps pct to 0..100. */
 export function ringDash(pct: number): string {

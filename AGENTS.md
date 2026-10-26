@@ -4,7 +4,8 @@
 
 usaKi is a floating desktop widget for Linux (Hyprland) and Windows 11. It shows the usage of
 each AI subscription: the 5h and 7d windows, the % used and the reset time. One account is one
-flat-top hex cell in a honeycomb cluster. Each cell has a 7d ring outside a 5h ring. The cell
+flat-top hex cell, and the cells form a rabbit. The account that resets next is the big head cell
+with the ears. The others are smaller body cells. Each cell has a 7d ring outside a 5h ring. The cell
 shows both percents and both countdowns, 5h on the left and 7d on the right. A click opens the
 bubble into a card with the full detail.
 

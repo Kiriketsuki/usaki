@@ -1,6 +1,8 @@
 // The rabbit ears. Issue #11 redraws them longer, with a small outward tilt, and with a
 // clear kink in the fold. Every shape stays a straight-edged polygon, as Chrysaki asks.
 
+import { CELL_R, HEAD_R } from './geometry';
+
 // Chrysaki surface tones for the facets. The inner panel is a lighter amethyst than the
 // tri-primary bar, so it reads as the inside of the ear.
 const FACET_SHADE = '#1c1f2b';
@@ -64,10 +66,16 @@ const EAR_FOLD: EarShape = {
   edge: [BASE_OUT, KINK_OUT, FLAP_TIP_IN, FLAP_TIP_OUT, FLAP_BEND, FLAP_RIDGE, FOLD_IN, KINK_IN, BASE_IN]
 };
 
+/**
+ * The ear points above fit a body cell. The ears sit on the head, so they grow with it, by
+ * HEAD_R / CELL_R.
+ */
+export const EAR_SCALE = HEAD_R / CELL_R;
+
 /** The height of the ears above the top edge of the top cell, in px. */
-export const EAR_HEIGHT = 56;
+export const EAR_HEIGHT = 56 * EAR_SCALE;
 /** The widest reach of an ear from the centre of the top cell, in px. The folded flap sets it. */
-export const EAR_REACH = 41;
+export const EAR_REACH = 41 * EAR_SCALE;
 
 /** Which ears fold. The left ear follows the 7d windows and the right ear the 5h windows. */
 export type EarState = 'up' | 'left' | 'right' | 'both';
@@ -78,7 +86,9 @@ export interface EarView {
 }
 
 function pts(list: readonly Point[], mirror: boolean, cx: number, baseY: number): string {
-  return list.map((p) => (mirror ? cx - p[0] : cx + p[0]) + ',' + (baseY + p[1])).join(' ');
+  return list
+    .map((p) => (mirror ? cx - p[0] * EAR_SCALE : cx + p[0] * EAR_SCALE) + ',' + (baseY + p[1] * EAR_SCALE))
+    .join(' ');
 }
 
 function ear(shape: EarShape, mirror: boolean, cx: number, baseY: number): EarView {
@@ -98,11 +108,10 @@ export function ears(state: EarState, cx: number, baseY: number): [EarView, EarV
   ];
 }
 
-/** Every point of both ear shapes, for the bound tests. */
-export const EAR_POINTS: readonly Point[] = [EAR_UP, EAR_FOLD].flatMap((s) => [
-  ...s.edge,
-  ...s.facets.flatMap((f) => f.pts)
-]);
+/** Every point of both ear shapes, scaled for the head, for the bound tests. */
+export const EAR_POINTS: readonly Point[] = [EAR_UP, EAR_FOLD]
+  .flatMap((s) => [...s.edge, ...s.facets.flatMap((f) => f.pts)])
+  .map((p) => [p[0] * EAR_SCALE, p[1] * EAR_SCALE] as const);
 
 /** The 5h and the 7d percent of one live account. */
 export interface LiveWindows {

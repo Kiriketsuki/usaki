@@ -7,14 +7,15 @@ import { bubbleView } from './model';
 const update = (accounts: ReturnType<typeof account>[]) => ({ polledAt: NOW, accounts, error: null });
 
 describe('bubbleView', () => {
-  it('draws one cell per account in order, each ring coloured by its own window', () => {
+  it('puts the auto account in the head and colours each ring by its own window', () => {
     const view = bubbleView(update([account('acc1', 42, 133, false, 63), account('acc2', 81, 47, false, 20)]), NOW);
     expect(view.cells.map((c) => c.rings)).toEqual([
-      { five: { pct: 42, color: EMERALD }, seven: { pct: 63, color: BLONDE } },
-      { five: { pct: 81, color: RUBY }, seven: { pct: 20, color: EMERALD } }
+      { five: { pct: 81, color: RUBY }, seven: { pct: 20, color: EMERALD } },
+      { five: { pct: 42, color: EMERALD }, seven: { pct: 63, color: BLONDE } }
     ]);
-    expect(view.cells.map((c) => c.text.name)).toEqual(['acc1', 'acc2']);
-    expect(view.cells[1].text).toEqual({
+    expect(view.cells.map((c) => c.id)).toEqual(['acc2', 'acc1']);
+    expect(view.cells[0].r).toBeGreaterThan(view.cells[1].r);
+    expect(view.cells[0].text).toEqual({
       name: 'acc2',
       five: { pct: '81%', countdown: '47m' },
       seven: { pct: '20%', countdown: '3d00h' }
@@ -29,15 +30,34 @@ describe('bubbleView', () => {
     view.cells.forEach((c, i) => expect([c.x, c.y]).toEqual([layout(3).cells[i].x, layout(3).cells[i].y]));
   });
 
-  it('highlights only the auto account, the next 5h reset', () => {
+  it('highlights only the head, the auto account, and keeps the others in account order', () => {
     const view = bubbleView(update([account('acc1', 42, 133), account('acc2', 81, 47), account('acc3', 5, 90)]), NOW);
-    expect(view.cells.map((c) => c.highlight)).toEqual([false, true, false]);
+    expect(view.cells.map((c) => c.highlight)).toEqual([true, false, false]);
+    expect(view.cells.map((c) => c.id)).toEqual(['acc2', 'acc1', 'acc3']);
+  });
+
+  it('rebalances when the auto account changes, with the same window size', () => {
+    const accts = (soon: string) =>
+      ['acc1', 'acc2', 'acc3', 'acc4'].map((id) => account(id, 10, id === soon ? 20 : 200));
+    const a = bubbleView(update(accts('acc1')), NOW);
+    const b = bubbleView(update(accts('acc4')), NOW);
+    expect(a.cells.map((c) => c.id)).toEqual(['acc1', 'acc2', 'acc3', 'acc4']);
+    expect(b.cells.map((c) => c.id)).toEqual(['acc4', 'acc1', 'acc2', 'acc3']);
+    expect([b.layout.width, b.layout.height]).toEqual([a.layout.width, a.layout.height]);
+  });
+
+  it('makes the first account the head when no account is live', () => {
+    const view = bubbleView(update([account('acc1', 42, 133, true), account('acc2', 81, 47, true)]), NOW);
+    expect(view.cells.map((c) => c.id)).toEqual(['acc1', 'acc2']);
+    expect(view.cells.some((c) => c.highlight)).toBe(false);
   });
 
   it('dims a stale cell, keeps it out of the highlight and out of the ear rule', () => {
     const view = bubbleView(update([account('acc1', 42, 133), account('acc2', 81, 47, true)]), NOW);
-    expect(view.cells.map((c) => c.dim)).toEqual([false, true]);
-    expect(view.cells.map((c) => c.highlight)).toEqual([true, false]);
+    expect(view.cells.map((c) => [c.id, c.dim, c.highlight])).toEqual([
+      ['acc1', false, true],
+      ['acc2', true, false]
+    ]);
     expect(view.ears).toBe('up');
   });
 

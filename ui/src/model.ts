@@ -4,7 +4,7 @@ import { type CellText, NO_DATA, READY, type WindowText, cellText, pickAuto } fr
 import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
 import { type EarState, earState } from './ears';
 import { type CellFit, fitCell } from './fit';
-import { type Layout, layout } from './layout';
+import { type Cell, type Layout, layout } from './layout';
 import { type AccountView, type UsageUpdate, fiveHour, sevenDay } from './usage';
 
 export interface RingView {
@@ -16,6 +16,10 @@ export interface RingView {
 export interface CellView {
   x: number;
   y: number;
+  /** The radius in px. The head is bigger than a body cell. */
+  r: number;
+  /** The id of the account in the cell, or null for the no data cell. */
+  id: string | null;
   rings: { five: RingView; seven: RingView } | null;
   text: CellText;
   fit: CellFit;
@@ -55,13 +59,23 @@ function ariaLabel(shown: AccountView | null, now: number): string {
   );
 }
 
-function noDataCell(at: { x: number; y: number }): CellView {
-  return { ...at, rings: null, text: NO_DATA, fit: fitCell(NO_DATA), dim: false, highlight: false };
+function noDataCell(at: Cell): CellView {
+  return { ...at, id: null, rings: null, text: NO_DATA, fit: fitCell(NO_DATA), dim: false, highlight: false };
 }
 
 /**
- * Returns the bubble at `now`: one hex cell per account, in account order, tiled into one
- * cluster. Each cell has a 7d ring outside and a 5h ring inside it.
+ * Puts the accounts in cell order. The auto account is the head, cell 0. With no live
+ * account the first account is the head. The others follow in account order as the body.
+ */
+export function headFirst(accounts: readonly AccountView[], auto: AccountView | null): AccountView[] {
+  const head = auto ?? accounts[0];
+  return head ? [head, ...accounts.filter((a) => a !== head)] : [];
+}
+
+/**
+ * Returns the bubble at `now`: one hex cell per account, laid out as a rabbit. The auto
+ * account is the head and carries the ears. Each cell has a 7d ring outside and a 5h ring
+ * inside it.
  */
 export function bubbleView(
   update: UsageUpdate | null,
@@ -74,10 +88,11 @@ export function bubbleView(
   const cells =
     accounts.length === 0
       ? [noDataCell(lay.cells[0])]
-      : accounts.map((a, i) => {
+      : headFirst(accounts, shown).map((a, i) => {
           const text = cellText(a, now);
           return {
             ...lay.cells[i],
+            id: a.id,
             rings: {
               five: ringView(fiveHour(a, now).pct, thresholds),
               seven: ringView(sevenDay(a, now).pct, thresholds)

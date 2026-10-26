@@ -1,42 +1,19 @@
-// The honeycomb layout: one flat-top hex cell per account, tiled edge to edge into one
-// cluster, and the window size that holds the cluster and the ears.
+// The rabbit layout. The auto account is the head: the biggest cell, with the ears on it.
+// The other accounts are smaller body cells below the head. Every pair of cells that touch
+// has the same gap, and no two cells overlap. The function also gives the window size that
+// holds the cells and the ears.
 
-import { CELL_APOTHEM, CELL_R } from './geometry';
+import { APOTHEM, CELL_APOTHEM, CELL_R, HEAD_R } from './geometry';
 import { EAR_HEIGHT, EAR_REACH } from './ears';
 
-/** Axial cell coordinates. q steps right and down, r steps straight down. */
-type Axial = readonly [number, number];
+/** The gap between two cells that touch, in px. */
+export const CELL_GAP = 3;
 
-// The fill order. Each prefix is a tidy shape: 1 cell, 2 cells on a diagonal, 3 as a
-// triangle of cells that all touch, 4 as a diamond, 5 as a kite, 7 as a full flower. Cell 0
-// is the top cell, and the ears sit on it.
-const FIRST: readonly Axial[] = [[0, 0], [1, 0], [0, 1], [-1, 1], [0, 2], [1, 1], [-1, 2]];
-// The flower of 7 has its middle at this cell. More cells fill rings around it.
-const MIDDLE: Axial = [0, 1];
-const DIRECTIONS: readonly Axial[] = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
-
-// The cells of the hex ring at distance `k` around MIDDLE, clockwise from the top.
-function ringCells(k: number): Axial[] {
-  const out: Axial[] = [];
-  let q = MIDDLE[0];
-  let r = MIDDLE[1] - k;
-  for (const [dq, dr] of DIRECTIONS) {
-    for (let i = 0; i < k; i += 1) {
-      out.push([q, r]);
-      q += dq;
-      r += dr;
-    }
-  }
-  return out;
-}
-
-/** Returns the axial coordinates of `count` cells, in fill order. */
-export function cellOrder(count: number): Axial[] {
-  const order: Axial[] = FIRST.slice(0, count);
-  for (let k = 2; order.length < count; k += 1) {
-    order.push(...ringCells(k).slice(0, count - order.length));
-  }
-  return order;
+/** One cell: its centre and its radius in px. */
+export interface Cell {
+  x: number;
+  y: number;
+  r: number;
 }
 
 export interface Point {
@@ -44,59 +21,94 @@ export interface Point {
   y: number;
 }
 
-/** Returns the centre of an axial cell in px, relative to cell [0, 0]. */
-export function axialCentre([q, r]: Axial): Point {
-  return { x: 1.5 * CELL_R * q, y: 2 * CELL_APOTHEM * (r + q / 2) };
+// The body cells sit on their own flat-top honeycomb. PITCH_A is the apothem of one step of
+// that honeycomb: two body cells one step apart face each other with CELL_GAP between.
+const PITCH_A = CELL_APOTHEM + CELL_GAP / 2;
+const PITCH_R = PITCH_A / APOTHEM;
+const HEAD_A = HEAD_R * APOTHEM;
+
+/**
+ * Returns body site `i`, relative to the chest cell at (0, 0). Site 0 is the chest, under
+ * the head. Then come the left haunch, the right haunch and the cell under the chest. More
+ * cells repeat that pattern further down, so the body grows as three columns.
+ */
+export function bodySite(i: number): Point {
+  if (i === 0) return { x: 0, y: 0 };
+  const row = Math.floor((i - 1) / 3);
+  const slot = (i - 1) % 3;
+  if (slot === 2) return { x: 0, y: (2 * row + 2) * PITCH_A };
+  return { x: (slot === 0 ? -1.5 : 1.5) * PITCH_R, y: (2 * row + 1) * PITCH_A };
 }
 
-/** The clear space around the cluster and the ears, in px. */
+// Two body cells sit as two feet beside the lower half of the head. Each foot faces a lower
+// slanted edge of the head with CELL_GAP between. The head centre then sits at this y,
+// relative to the feet sites, which are the left and the right haunch.
+function headYOverFeet(): number {
+  // The normal of the lower right head edge is (cos 30, sin 30). The foot must sit at
+  // HEAD_A + CELL_GAP + CELL_APOTHEM along it from the head centre.
+  const reach = HEAD_A + CELL_GAP + CELL_APOTHEM;
+  return PITCH_A - 2 * (reach - 1.5 * PITCH_R * APOTHEM);
+}
+
+// The cells relative to the chest site, head first. One body cell sits as the chest. Two
+// sit as feet. Three or more fill the body sites in order under a head that rests on the chest.
+function rawCells(count: number): Cell[] {
+  const body = Math.max(0, count - 1);
+  if (body === 2) {
+    const feet = [bodySite(1), bodySite(2)];
+    return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, ...feet.map((p) => ({ ...p, r: CELL_R }))];
+  }
+  const head: Cell = { x: 0, y: -(CELL_APOTHEM + CELL_GAP + HEAD_A), r: HEAD_R };
+  return [head, ...Array.from({ length: body }, (_, i) => ({ ...bodySite(i), r: CELL_R }))];
+}
+
+/** The clear space around the cells and the ears, in px. */
 export const PAD = 2;
-/** The gap between the ear band top and the tip of the ears, in px. */
+/** The gap between the window top and the tip of the ears, in px. */
 const EAR_TOP_GAP = 2;
 /** The ear base sits 1 px below the top edge, so no gap shows under the glass. */
 const EAR_SINK = 1;
 
 export interface Layout {
-  /** Cell centres in window px, in fill order. */
-  cells: Point[];
-  /** The cell that carries the ears. */
-  top: number;
+  /** Cell centres and radii in window px. Cell 0 is the head. */
+  cells: Cell[];
   /** The y of the ear base in window px. */
   earBase: number;
   width: number;
   height: number;
 }
 
-// The top cell is the highest one. A tie goes to the cell nearest the middle.
-function topCell(cells: readonly Point[]): number {
-  return cells.reduce(
-    (best, c, i) =>
-      c.y < cells[best].y - 1e-9 || (Math.abs(c.y - cells[best].y) < 1e-9 && Math.abs(c.x) < Math.abs(cells[best].x))
-        ? i
-        : best,
-    0
-  );
-}
-
 /**
- * Returns the layout of `count` cells. Zero accounts still get one cell, for the no data
- * text. The window holds the cluster, the ears above the top cell, and PAD on each side.
+ * Returns the layout of `count` accounts. Zero accounts still get the head cell, for the no
+ * data text. The window holds the cells, the ears above the head, and PAD on each side. The
+ * layout depends on the count only, so a new head does not change the window size.
  */
 export function layout(count: number): Layout {
-  const raw = cellOrder(Math.max(1, count)).map(axialCentre);
-  const top = topCell(raw);
-  const xs = raw.flatMap((c) => [c.x - CELL_R, c.x + CELL_R]);
-  const ys = raw.flatMap((c) => [c.y - CELL_APOTHEM, c.y + CELL_APOTHEM]);
-  const left = Math.min(...xs, raw[top].x - EAR_REACH);
-  const right = Math.max(...xs, raw[top].x + EAR_REACH);
-  const earTop = raw[top].y - CELL_APOTHEM - EAR_HEIGHT - EAR_TOP_GAP;
+  const raw = rawCells(Math.max(1, count));
+  const head = raw[0];
+  const xs = raw.flatMap((c) => [c.x - c.r, c.x + c.r]);
+  const ys = raw.flatMap((c) => [c.y - c.r * APOTHEM, c.y + c.r * APOTHEM]);
+  const left = Math.min(...xs, head.x - EAR_REACH);
+  const right = Math.max(...xs, head.x + EAR_REACH);
+  const earTop = head.y - HEAD_A - EAR_HEIGHT - EAR_TOP_GAP;
   const dx = PAD - left;
   const dy = PAD - Math.min(earTop, ...ys);
   return {
-    cells: raw.map((c) => ({ x: c.x + dx, y: c.y + dy })),
-    top,
-    earBase: raw[top].y - CELL_APOTHEM + EAR_SINK + dy,
+    cells: raw.map((c) => ({ x: c.x + dx, y: c.y + dy, r: c.r })),
+    earBase: head.y - HEAD_A + EAR_SINK + dy,
     width: Math.ceil(right + dx + PAD),
     height: Math.ceil(Math.max(...ys) + dy + PAD)
   };
+}
+
+/**
+ * Returns the gap between two flat-top hexagons, in px, or a negative number when they
+ * overlap. Two flat-top hexagons share their three edge normals, so the largest separation
+ * along those normals is the gap.
+ */
+export function cellGap(a: Cell, b: Cell): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const normals: [number, number][] = [[0, 1], [APOTHEM, 0.5], [APOTHEM, -0.5]];
+  return Math.max(...normals.map(([nx, ny]) => Math.abs(dx * nx + dy * ny) - (a.r + b.r) * APOTHEM));
 }

@@ -4,7 +4,7 @@
 import { READY } from './centre';
 import { ears } from './ears';
 import { ROW_SIZE } from './fit';
-import { APOTHEM, CELL_APOTHEM, CELL_R, FIVE_RING, type RingGeometry, SEVEN_RING, hexPath, ringDash } from './geometry';
+import { APOTHEM, CELL_R, type RingGeometry, cellRings, hexPath, ringDash } from './geometry';
 import type { BubbleView, CellView, RingView } from './model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -36,7 +36,7 @@ function part<T extends Element>(root: ParentNode, selector: string): T {
 }
 
 function earNodes(view: BubbleView): SVGElement[] {
-  const top = view.layout.cells[view.layout.top];
+  const top = view.layout.cells[0];
   return ears(view.ears, top.x, view.layout.earBase).flatMap((e) => [
     ...e.facets.map((f) => svg('polygon', { points: f.pts, fill: f.fill })),
     svg('polyline', {
@@ -68,14 +68,15 @@ function ringNodes(c: CellView, g: RingGeometry, ring: RingView): SVGElement[] {
 
 function cellNode(c: CellView): SVGElement {
   const g = svg('g', { opacity: c.dim ? STALE_RINGS : 1 });
-  g.append(svg('path', { d: hexPath(CELL_R, c.x, c.y), fill: 'none', stroke: EDGE, 'stroke-width': 1 }));
-  if (c.rings) g.append(...ringNodes(c, SEVEN_RING, c.rings.seven), ...ringNodes(c, FIVE_RING, c.rings.five));
+  g.append(svg('path', { d: hexPath(c.r, c.x, c.y), fill: 'none', stroke: EDGE, 'stroke-width': 1 }));
+  const rings = cellRings(c.r);
+  if (c.rings) g.append(...ringNodes(c, rings.seven, c.rings.seven), ...ringNodes(c, rings.five, c.rings.five));
   return g;
 }
 
 // The highlight runs just inside the cell edge, so it does not cover the next cell.
 function highlightNode(c: CellView): SVGElement {
-  const r = (CELL_APOTHEM - HIGHLIGHT_SW / 2) / APOTHEM;
+  const r = (c.r * APOTHEM - HIGHLIGHT_SW / 2) / APOTHEM;
   return svg('path', {
     d: hexPath(r, c.x, c.y),
     fill: 'none',
@@ -92,12 +93,14 @@ function labelNode(c: CellView): HTMLElement {
   el.style.left = c.x + 'px';
   el.style.top = c.y + 'px';
   if (c.dim) el.style.opacity = String(STALE_TEXT);
+  // The fit works on a body cell. A bigger cell scales the whole text block with it.
+  const k = c.r / CELL_R;
   el.append(
     ...c.fit.items.map((item) => {
       const span = html('span', item.role + (item.text === READY ? ' ready' : ''), item.text);
-      span.style.left = item.x + 'px';
-      span.style.top = item.y + 'px';
-      span.style.fontSize = ROW_SIZE[item.role] + 'px';
+      span.style.left = item.x * k + 'px';
+      span.style.top = item.y * k + 'px';
+      span.style.fontSize = ROW_SIZE[item.role] * k + 'px';
       return span;
     })
   );
@@ -116,7 +119,7 @@ export function renderBubble(root: HTMLElement, view: BubbleView): void {
     el.setAttribute('height', String(height));
     el.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
   }
-  const glass = cells.map((c) => hexPath(CELL_R, c.x, c.y)).join(' ');
+  const glass = cells.map((c) => hexPath(c.r, c.x, c.y)).join(' ');
   part<HTMLElement>(root, '.glass').style.clipPath = "path('" + glass + "')";
   part<SVGElement>(root, '.ears').replaceChildren(...earNodes(view));
   part<SVGElement>(root, '.cells').replaceChildren(

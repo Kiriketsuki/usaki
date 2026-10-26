@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EAR_HEIGHT, EAR_POINTS, EAR_REACH, earState, ears } from './ears';
-import { CELL_R } from './geometry';
+import { HEAD_R } from './geometry';
 
 const parse = (s: string) => s.split(' ').map((p) => p.split(',').map(Number) as [number, number]);
 
@@ -42,11 +42,11 @@ describe('ears', () => {
     lp.forEach(([x, y], i) => expect(rp[i]).toEqual([200 - x, y]));
   });
 
-  it('stands each ear base on the top edge of the cell', () => {
+  it('stands each ear base on the top edge of the head', () => {
     const [l] = ears('up', 100, 60);
     const base = parse(l.edge).filter(([, y]) => y === 60);
     expect(base).toHaveLength(2);
-    base.forEach(([x]) => expect(Math.abs(x - 100)).toBeLessThanOrEqual(CELL_R / 2));
+    base.forEach(([x]) => expect(Math.abs(x - 100)).toBeLessThanOrEqual(HEAD_R / 2));
   });
 
   it('makes the standing ear EAR_HEIGHT tall and tilted outward', () => {
