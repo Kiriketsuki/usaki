@@ -4,7 +4,8 @@ use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use usaki_core::providers::claude_cache::{
-    ClaudeCacheProvider, cache_dir_from, cache_dir_from_env, cache_path, parse_snapshot,
+    ClaudeCacheProvider, account_id_from_file_name, cache_dir_from, cache_dir_from_env, cache_path,
+    parse_snapshot,
 };
 use usaki_core::{Account, Clock, Error, Provider, ProviderKind, Source, WindowKind};
 
@@ -195,6 +196,37 @@ fn default_path_uses_the_account_id() {
         cache_path(&dir, "acc2"),
         PathBuf::from("/x/cache/usaki/claude-acc2.json")
     );
+}
+
+#[test]
+fn file_name_gives_the_account_id() {
+    assert_eq!(account_id_from_file_name("claude-acc1.json"), Some("acc1"));
+    assert_eq!(
+        account_id_from_file_name("claude-a_b-2.json"),
+        Some("a_b-2")
+    );
+}
+
+#[test]
+fn file_name_rejects_other_files() {
+    for name in [
+        "claude-.json",
+        "claude-a.b.json",
+        "claude-acc1.json.tmp",
+        "codex-acc1.json",
+        "claude-acc 1.json",
+        "acc1.json",
+    ] {
+        assert_eq!(account_id_from_file_name(name), None, "{name}");
+    }
+}
+
+#[test]
+fn file_name_and_cache_path_agree() {
+    let dir = PathBuf::from("/x/cache");
+    let path = cache_path(&dir, "acc2");
+    let name = path.file_name().unwrap().to_str().unwrap();
+    assert_eq!(account_id_from_file_name(name), Some("acc2"));
 }
 
 #[test]
