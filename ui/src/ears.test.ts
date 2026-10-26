@@ -11,7 +11,7 @@ import {
   ears,
   insidePolygon
 } from './ears';
-import { APOTHEM, HEAD_R, cellGap } from './geometry';
+import { APOTHEM, HEAD_R, cellGap, hexCorners } from './geometry';
 
 const w = (five: number, seven: number) => ({ five, seven });
 
@@ -55,7 +55,7 @@ describe('earCells', () => {
   const CX = 100;
   const TOP = 200;
   const head = { x: CX, y: TOP + HEAD_R * APOTHEM, r: HEAD_R };
-  const SHADE = '#1c1f2b';
+  const CREASE = '#1c1f2b';
 
   for (const folded of [false, true]) {
     describe(folded ? 'a folded ear' : 'a standing ear', () => {
@@ -63,7 +63,7 @@ describe('earCells', () => {
       const right = earCells(folded, true, CX, TOP);
 
       it('fills the ear with a fixed number of hexes', () => {
-        expect(left).toHaveLength(folded ? 28 : 26);
+        expect(left).toHaveLength(folded ? 22 : 19);
         expect(right).toHaveLength(left.length);
       });
 
@@ -81,8 +81,15 @@ describe('earCells', () => {
       });
 
       it('keeps each ear on its own side, clear of the pin stud in the middle', () => {
-        left.forEach((c) => expect(c.x + c.r).toBeLessThan(CX - 3.5));
-        right.forEach((c) => expect(c.x - c.r).toBeGreaterThan(CX + 3.5));
+        left.forEach((c) => expect(c.x + c.r).toBeLessThan(CX));
+        right.forEach((c) => expect(c.x - c.r).toBeGreaterThan(CX));
+        // The stud of bubble.ts: a diamond 7 px wide and 9 px tall, with its tip 1.5 px above the top edge.
+        const stud: [number, number][] = [[CX, TOP - 1.5], [CX + 3.5, TOP - 6], [CX, TOP - 10.5], [CX - 3.5, TOP - 6]];
+        for (const c of [...left, ...right]) {
+          const hex = hexCorners(c.r, c.x, c.y);
+          stud.forEach(([x, y]) => expect(insidePolygon(x, y, hex)).toBe(false));
+          hex.forEach(([x, y]) => expect(insidePolygon(x, y, stud)).toBe(false));
+        }
       });
 
       it('stands every hex at least EAR_LIFT above the head and EAR_DOT_GAP from the next hex', () => {
@@ -101,9 +108,9 @@ describe('earCells', () => {
     expect(Math.min(...fold.map((c) => c.x))).toBeLessThan(Math.min(...up.map((c) => c.x)));
   });
 
-  it('marks the kink with the darkest tone on a folded ear only', () => {
-    expect(earCells(false, false, CX, TOP).some((c) => c.fill === SHADE)).toBe(false);
-    expect(earCells(true, false, CX, TOP).filter((c) => c.fill === SHADE).length).toBeGreaterThan(2);
+  it('marks the kink with the crease tone on a folded ear only', () => {
+    expect(earCells(false, false, CX, TOP).some((c) => c.fill === CREASE)).toBe(false);
+    expect(earCells(true, false, CX, TOP).filter((c) => c.fill === CREASE).length).toBeGreaterThanOrEqual(2);
   });
 
   it('keeps the light amethyst inner panel in both shapes', () => {
@@ -117,10 +124,10 @@ describe('ears', () => {
   const count = (state: Parameters<typeof ears>[0]) => ears(state, 0, 0).map((e) => e.length);
 
   it('folds no ear, the left ear, the right ear or both, by the state', () => {
-    expect(count('up')).toEqual([26, 26]);
-    expect(count('left')).toEqual([28, 26]);
-    expect(count('right')).toEqual([26, 28]);
-    expect(count('both')).toEqual([28, 28]);
+    expect(count('up')).toEqual([19, 19]);
+    expect(count('left')).toEqual([22, 19]);
+    expect(count('right')).toEqual([19, 22]);
+    expect(count('both')).toEqual([22, 22]);
   });
 
   it('gives the bounds every hex of every fold state', () => {

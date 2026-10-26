@@ -5,11 +5,14 @@
 import { APOTHEM } from './geometry';
 
 // Chrysaki surface tones for the facets. The inner panel is a lighter amethyst than the
-// tri-primary bar, so it reads as the inside of the ear.
-const FACET_SHADE = '#1c1f2b';
-const FACET_BACK = '#252836';
-const FACET_LIT = '#363a4f';
+// tri-primary bar, so it reads as the inside of the ear. Each surface tone sits one step above
+// the glass of the plate, so the ear shows on the plate. The crease of a fold takes the
+// darkest surface, below every facet.
+const FACET_SHADE = '#2b2f42';
+const FACET_BACK = '#363a4f';
+const FACET_LIT = '#4a4f68';
 const FACET_INNER = '#7a4fb8';
+const FACET_CREASE = '#1c1f2b';
 
 type Point = readonly [number, number];
 
@@ -76,9 +79,12 @@ export const EAR_SCALE_Y = 1.8;
 /** Each ear leans out by this many px per px of height, so the two ears open into a V. */
 export const EAR_LEAN = 0.16;
 
-/** The corner radius of one ear hex, in px, and the gap between two ear hexes. */
-export const EAR_DOT_R = 5;
-export const EAR_DOT_GAP = 1.2;
+/**
+ * The corner radius of one ear hex, in px, and the gap between two ear hexes. The hexes are big
+ * and almost touch, so the ear reads as one solid shape and not as loose dots.
+ */
+export const EAR_DOT_R = 6;
+export const EAR_DOT_GAP = 0.5;
 // One step of the ear honeycomb. Two ear hexes one step apart face each other with EAR_DOT_GAP.
 const DOT_PITCH_A = EAR_DOT_R * APOTHEM + EAR_DOT_GAP / 2;
 const DOT_PITCH_R = DOT_PITCH_A / APOTHEM;
@@ -155,9 +161,9 @@ export function earCells(folded: boolean, mirror: boolean, cx: number, top: numb
       const last = inFacets.lastIndexOf(true);
       if (last < 0) continue;
       // The top row of the standing part of a folded ear is the ridge of the kink. It takes the
-      // darkest tone, so the crease shows at 1x between the standing part and the flap.
+      // crease tone, so the crease shows at 1x between the standing part and the flap.
       const ridge = folded && last < STANDING_FACETS && y < foldY + RIDGE_DEPTH;
-      out.push({ x, y, r: EAR_DOT_R, fill: ridge ? FACET_SHADE : facets[last].fill });
+      out.push({ x, y, r: EAR_DOT_R, fill: ridge ? FACET_CREASE : facets[last].fill });
     }
   }
   return out;

@@ -11,11 +11,11 @@ export interface Decor {
   fill: string;
 }
 
-/** The corner radius of one pad hex, in px, and the gap between two pad hexes. */
-export const PAD_R = 7;
-export const PAD_GAP = 1.5;
-/** The lit Chrysaki surface, the tone of the lit ear face. */
-export const PAD_FILL = '#363a4f';
+/** The corner radius of one pad hex, in px, and the gap between two pad hexes. They match the ear hexes. */
+export const PAD_R = 7.5;
+export const PAD_GAP = 0.5;
+/** A light Chrysaki surface, one step above the lit ear face, so the feet show on the plate. */
+export const PAD_FILL = '#4a4f68';
 
 // One step of the pad honeycomb.
 const PITCH_A = PAD_R * APOTHEM + PAD_GAP / 2;
@@ -26,7 +26,7 @@ const STEP_X = 1.5 * PITCH_R;
  * The pad of each hind foot starts this far out from the centre of its cell, in px. It is the
  * first column whose lowest hex keeps CELL_GAP from the lower slanted edge of a body cell.
  */
-const FOOT_FROM = 39;
+const FOOT_FROM = 40;
 /** The columns of each hind foot pad. */
 const FOOT_COLUMNS = 3;
 /** The front paws of one head sit this far from the middle of the head, in px. */
