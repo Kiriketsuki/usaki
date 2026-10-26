@@ -4,7 +4,8 @@
 
 usaKi is a floating desktop widget for Linux (Hyprland) and Windows 11. It shows the usage of
 each AI subscription: the 5h and 7d windows, the % used and the reset time. One account is one
-ring on a hexagon bubble. A click opens the bubble into a card with the full detail.
+flat-top hex cell in a honeycomb cluster. Each cell has a thick 5h ring and a thin 7d ring. A
+click opens the bubble into a card with the full detail.
 
 The name comes from usagi, Japanese for rabbit. The app carries a rabbit identity throughout.
 
@@ -21,7 +22,10 @@ cache data. Read `.claude/handoffs/` for the latest handoff.
 | `docs/design/mockup/*.dc.html` | Mockup artboards (Main, Bubble, Card, States, Settings) |
 | https://claude.ai/artifact/GV4AetCYbFgVsAzGFz6KH2 | The same mockup as a live canvas |
 
-The mockup is the visual spec. Port its HTML, SVG and ring maths. Do not redesign them.
+The mockup is the visual spec. Port its HTML, SVG and ring maths. Do not redesign them. One
+exception: issue #11 replaced the single hex with a honeycomb of cells and redrew the ears. For
+the bubble, `ui/src/layout.ts`, `ui/src/geometry.ts` and `ui/src/ears.ts` lead until the mockup
+catches up.
 
 ## Stack
 

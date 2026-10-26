@@ -14,10 +14,13 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
 ## Settled decisions
 
 - **Framework:** Tauri v2 on both OSes, with one codebase. The user rejected AGS. The mockup HTML and SVG port directly.
-- **Shape:** a flat-top hexagon only, with one concentric hex ring per account, outermost first. Chrysaki bans rounded corners. The user dropped the circle option.
+- **Shape:** flat-top hexagons only. Each account is one hex cell, 88 px corner to corner, and the cells tile edge to edge into one cluster (issue #11).
+  The fill order gives 2 cells on a diagonal, 3 as a triangle, 4 as a diamond and 5 as a kite. More cells fill rings around the middle.
+  Each cell has a thick 5h ring and a thin 7d ring inside it. Chrysaki bans rounded corners. The user dropped the circle option.
 - **Mouse:** left-drag moves the widget. A left-click expands the bubble in place into the card, and a click on the card's header hex collapses it.
   A right-click shows the next account in the centre (one step, wraps, never auto). A middle-click returns the centre to auto (earliest 5h reset).
-- **Centre:** three lines. The mode (`next 5h` / `5h reset` / `stale 3h`), the countdown, and `<short> · <pct>%`. When the user pins an account, the other rings dim.
+- **Cell text:** three lines in each cell. The 5h countdown, the account name, and `<5h>/<7d>%`. A name longer than 12 characters ends in an ellipsis.
+  The auto account (earliest 5h reset) or the pinned account gets a bright outline. A stale cell dims.
 - **Colour thresholds:** emerald `#1a8a6a` under 50%, blonde `#FBB13C` from 50%, ruby `#e06a78` from 75%. All three thresholds can be configured.
 - **Each machine fetches its own data.** Windows has its own logins. The design has no network sync.
 - **The widget never refreshes an OAuth token.** A Claude refresh token works only once. A refresh by the widget logs out the running Claude Code sessions.
@@ -30,7 +33,9 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
   - Gemini: `retrieveUserQuota` is best effort. Google reportedly cut that access for consumer plans in 2026-06, so "stale" is the expected state.
 - **Theme:** Chrysaki tokens, Inter and Fira Code, glass bubble, chamfered card, no border-radius.
 - **Rabbit identity:** the name comes from usagi, Japanese for rabbit. The user wants a rabbit feel across the whole app (2026-10-23):
-  - The bubble has two angular, faceted ears on top of the hex. Both ears stand up normally. One ear folds when any ring is critical. Both ears fold when an account hits its limit or the data is stale.
+  - The bubble has two long, angular, faceted ears on the top cell. They tilt out a little, with a flat-cut tip and a light amethyst inner panel.
+    Both ears stand up normally. One ear folds when any 5h ring is critical. Both ears fold when an account hits its limit or the data is stale.
+    A fold bends the top third of the ear over at a kink, and the hanging flap is the darkest facet.
   - A faceted rabbit-head mark: tri-primary facets and a Blonde eye stud. It is the tray icon, the card header icon (in place of the small hex) and the app icon.
   - The rabbit in the moon (tsuki no usagi): each 7d reset shows a small moon-phase glyph that fills as the reset gets closer.
   - A 220 ms hop when a window resets. This is a deliberate exception to the Chrysaki no-bounce rule. Plain rabbit wording ("burrowed", "hop") was not chosen.
@@ -62,7 +67,8 @@ src-tauri/src/
                      set_position and set_size do nothing there. Size goes through GTK set_size_request, and
                      a move after each resize keeps the top-left fixed. Elsewhere it uses set_position.
 ui/ (Vite + vanilla TS, no framework, to keep the webview light)
-  bubble.ts          hex ring SVG: port hexPath() and the ring maths from Bubble.dc.html
+  bubble.ts          hex cell SVG: port hexPath() and the ring maths from Bubble.dc.html, one cell per account
+  layout.ts          honeycomb cell layout and the window size for the cell count
   card.ts            expanded card: port of Card.dc.html
   centre.ts          pure centre-selection logic: auto, cycle, middle-click reset
   interactions.ts    pointer threshold of 4 px → getCurrentWindow().startDragging(); contextmenu → cycle; auxclick button 1 → auto
@@ -70,7 +76,8 @@ ui/ (Vite + vanilla TS, no framework, to keep the webview light)
 ```
 
 Window flags: `decorations: false`, `transparent: true`, `alwaysOnTop: true`, `skipTaskbar: true`,
-`resizable: false`. The window resizes between 152×188 (bubble: the hex plus the ears) and 420×470 (card), anchored at the top-left.
+`resizable: false`. The bubble window size follows the cell count: 92×139 for one cell, 224×291 for five, from `layout()` in `ui/src/layout.ts`.
+The card is 420×470. Every resize keeps the top-left corner in place. On Hyprland the app moves the window back by PID after a resize, because Hyprland keeps the centre.
 
 ## Changes outside the new repo
 
