@@ -1,0 +1,9 @@
+{
+  "account": "acc2",
+  "limits": [
+    { "window_minutes": 300, "used_percentage": 61, "resets_at": 1800003600 },
+    { "window_minutes": 10080, "used_percentage": 33, "resets_at": 1800300000 },
+    { "window_minutes": 60, "used_percentage": 5, "resets_at": 1800001000 }
+  ],
+  "written_at": 1800000000
+}

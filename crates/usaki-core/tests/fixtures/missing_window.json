@@ -1,0 +1,6 @@
+{
+  "account": "acc1",
+  "five_hour": { "used_percentage": 42, "resets_at": 1800003600 },
+  "seven_day": null,
+  "written_at": 1800000000
+}
