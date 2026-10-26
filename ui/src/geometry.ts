@@ -147,3 +147,25 @@ export function trackDots(r: number, cx: number, cy: number, spacing: number): [
     return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
   });
 }
+
+/** The gap between two cells that touch, in px. */
+export const CELL_GAP = 3;
+
+/** One hex: its centre and its corner radius in px. */
+export interface Cell {
+  x: number;
+  y: number;
+  r: number;
+}
+
+/**
+ * Returns the gap between two flat-top hexagons, in px, or a negative number when they
+ * overlap. Two flat-top hexagons share their three edge normals, so the largest separation
+ * along those normals is the gap.
+ */
+export function cellGap(a: Cell, b: Cell): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const normals: [number, number][] = [[0, 1], [APOTHEM, 0.5], [APOTHEM, -0.5]];
+  return Math.max(...normals.map(([nx, ny]) => Math.abs(dx * nx + dy * ny) - (a.r + b.r) * APOTHEM));
+}

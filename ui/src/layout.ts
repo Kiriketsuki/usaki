@@ -3,18 +3,10 @@
 // has the same gap, and no two cells overlap. The function also gives the window size that
 // holds the cells and the ears.
 
-import { APOTHEM, CELL_APOTHEM, CELL_R, HEAD_R } from './geometry';
+import { APOTHEM, CELL_APOTHEM, CELL_GAP, CELL_R, type Cell, HEAD_R, cellGap } from './geometry';
 import { EAR_HEIGHT, EAR_REACH } from './ears';
 
-/** The gap between two cells that touch, in px. */
-export const CELL_GAP = 3;
-
-/** One cell: its centre and its radius in px. */
-export interface Cell {
-  x: number;
-  y: number;
-  r: number;
-}
+export { CELL_GAP, type Cell, cellGap };
 
 export interface Point {
   x: number;
@@ -99,16 +91,4 @@ export function layout(count: number): Layout {
     width: Math.ceil(right + dx + PAD),
     height: Math.ceil(Math.max(...ys) + dy + PAD)
   };
-}
-
-/**
- * Returns the gap between two flat-top hexagons, in px, or a negative number when they
- * overlap. Two flat-top hexagons share their three edge normals, so the largest separation
- * along those normals is the gap.
- */
-export function cellGap(a: Cell, b: Cell): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const normals: [number, number][] = [[0, 1], [APOTHEM, 0.5], [APOTHEM, -0.5]];
-  return Math.max(...normals.map(([nx, ny]) => Math.abs(dx * nx + dy * ny) - (a.r + b.r) * APOTHEM));
 }
