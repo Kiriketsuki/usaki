@@ -4,17 +4,29 @@ import { CELL_R } from './geometry';
 
 const parse = (s: string) => s.split(' ').map((p) => p.split(',').map(Number) as [number, number]);
 
+const w = (five: number, seven: number) => ({ five, seven });
+
 describe('earState', () => {
-  it('stands both ears when every live ring is under crit', () => {
-    expect(earState([42, 63], 75)).toBe('up');
+  it('stands both ears when every live window is under crit', () => {
+    expect(earState([w(42, 63), w(70, 10)], 75)).toBe('up');
   });
 
-  it('folds one ear when a live ring is at crit or more', () => {
-    expect(earState([42, 75], 75)).toBe('one');
+  it('folds the right ear for a live 5h window at crit or more', () => {
+    expect(earState([w(42, 10), w(75, 20)], 75)).toBe('right');
   });
 
-  it('folds both ears for a full ring', () => {
-    expect(earState([42, 100], 75)).toBe('both');
+  it('folds the left ear for a live 7d window at crit or more', () => {
+    expect(earState([w(42, 10), w(20, 75)], 75)).toBe('left');
+  });
+
+  it('folds both ears when a 5h and a 7d window are at crit, in one or two accounts', () => {
+    expect(earState([w(80, 90)], 75)).toBe('both');
+    expect(earState([w(80, 10), w(10, 90)], 75)).toBe('both');
+  });
+
+  it('folds both ears for a full window of either length', () => {
+    expect(earState([w(42, 10), w(100, 10)], 75)).toBe('both');
+    expect(earState([w(42, 10), w(10, 100)], 75)).toBe('both');
   });
 
   it('folds both ears when no account is live', () => {
@@ -46,11 +58,19 @@ describe('ears', () => {
     expect(tip[0]).toBeLessThan(baseMid);
   });
 
-  it('folds the right ear only in the one state, with a darker hanging flap', () => {
-    const [l, r] = ears('one', 0, 0);
+  it('folds the right ear only in the right state, with a darker hanging flap', () => {
+    const [l, r] = ears('right', 0, 0);
     expect(l.facets).toHaveLength(3);
     expect(r.facets).toHaveLength(5);
     expect(r.facets[4].fill).toBe('#1c1f2b');
+  });
+
+  it('folds the left ear only in the left state, as the mirror of a right fold', () => {
+    const [l, r] = ears('left', 0, 0);
+    expect(l.facets).toHaveLength(5);
+    expect(r.facets).toHaveLength(3);
+    const [, rFold] = ears('right', 0, 0);
+    expect(parse(l.edge)).toEqual(parse(rFold.edge).map(([x, y]) => [-x + 0, y]));
   });
 
   it('folds both ears in the both state, lower than a standing ear', () => {

@@ -34,7 +34,8 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
 - **Theme:** Chrysaki tokens, Inter and Fira Code, glass bubble, chamfered card, no border-radius.
 - **Rabbit identity:** the name comes from usagi, Japanese for rabbit. The user wants a rabbit feel across the whole app (2026-10-23):
   - The bubble has two long, angular, faceted ears on the top cell. They tilt out a little, with a flat-cut tip and a light amethyst inner panel.
-    Both ears stand up normally. One ear folds when any 5h ring is critical. Both ears fold when an account hits its limit or the data is stale.
+    Both ears stand up normally. The right ear folds when a live 5h window is at 75% or more. The left ear folds when a live 7d window is at 75% or more.
+    Both ears fold when a live account hits 100% in either window, or when no live account remains.
     A fold bends the top third of the ear over at a kink, and the hanging flap is the darkest facet.
   - A faceted rabbit-head mark: tri-primary facets and a Blonde eye stud. It is the tray icon, the card header icon (in place of the small hex) and the app icon.
   - The rabbit in the moon (tsuki no usagi): each 7d reset shows a small moon-phase glyph that fills as the reset gets closer.

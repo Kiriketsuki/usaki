@@ -69,7 +69,8 @@ export const EAR_HEIGHT = 56;
 /** The widest reach of an ear from the centre of the top cell, in px. The folded flap sets it. */
 export const EAR_REACH = 41;
 
-export type EarState = 'up' | 'one' | 'both';
+/** Which ears fold. The left ear follows the 7d windows and the right ear the 5h windows. */
+export type EarState = 'up' | 'left' | 'right' | 'both';
 
 export interface EarView {
   facets: { pts: string; fill: string }[];
@@ -87,14 +88,13 @@ function ear(shape: EarShape, mirror: boolean, cx: number, baseY: number): EarVi
   };
 }
 
-/**
- * Returns the left and the right ear, with the base at `baseY` and the middle at `cx`. In
- * the `one` state the right ear folds.
- */
+/** Returns the left and the right ear, with the base at `baseY` and the middle at `cx`. */
 export function ears(state: EarState, cx: number, baseY: number): [EarView, EarView] {
+  const leftFolds = state === 'left' || state === 'both';
+  const rightFolds = state === 'right' || state === 'both';
   return [
-    ear(state === 'both' ? EAR_FOLD : EAR_UP, false, cx, baseY),
-    ear(state === 'up' ? EAR_UP : EAR_FOLD, true, cx, baseY)
+    ear(leftFolds ? EAR_FOLD : EAR_UP, false, cx, baseY),
+    ear(rightFolds ? EAR_FOLD : EAR_UP, true, cx, baseY)
   ];
 }
 
@@ -104,12 +104,24 @@ export const EAR_POINTS: readonly Point[] = [EAR_UP, EAR_FOLD].flatMap((s) => [
   ...s.facets.flatMap((f) => f.pts)
 ]);
 
+/** The 5h and the 7d percent of one live account. */
+export interface LiveWindows {
+  five: number;
+  seven: number;
+}
+
 /**
- * The fold rule from Main.dc.html. The ears follow the 5h rings of the live accounts. No
- * live account or a full ring folds both ears. A ring at `crit` or more folds one ear.
+ * The fold rule. Issue #11 split the rule of Main.dc.html between the ears. The right ear
+ * folds when a live 5h window is at `crit` or more. The left ear folds when a live 7d
+ * window is at `crit` or more. A full window in either set, or no live account, folds both.
  */
-export function earState(liveRingPcts: readonly number[], crit: number): EarState {
-  if (liveRingPcts.length === 0 || liveRingPcts.some((p) => p >= 100)) return 'both';
-  if (liveRingPcts.some((p) => p >= crit)) return 'one';
+export function earState(live: readonly LiveWindows[], crit: number): EarState {
+  const full = live.some((w) => w.five >= 100 || w.seven >= 100);
+  if (live.length === 0 || full) return 'both';
+  const left = live.some((w) => w.seven >= crit);
+  const right = live.some((w) => w.five >= crit);
+  if (left && right) return 'both';
+  if (left) return 'left';
+  if (right) return 'right';
   return 'up';
 }

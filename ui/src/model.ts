@@ -98,8 +98,10 @@ export function bubbleView(
             highlight: a === shown
           };
         });
-  // The ears follow the 5h rings of the live accounts, as in the approved fold rule.
-  const live = accounts.filter((a) => !a.stale).map((a) => fiveHour(a, now).pct);
+  // The right ear follows the live 5h windows and the left ear the live 7d windows.
+  const live = accounts
+    .filter((a) => !a.stale)
+    .map((a) => ({ five: fiveHour(a, now).pct, seven: sevenDay(a, now).pct }));
   return {
     cells,
     layout: lay,

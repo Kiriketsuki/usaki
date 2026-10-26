@@ -15,7 +15,7 @@ describe('bubbleView', () => {
     ]);
     expect(view.cells.map((c) => c.text.name)).toEqual(['acc1', 'acc2']);
     expect(view.cells[1].text).toEqual({ countdown: '47m', name: 'acc2', figures: '81/20%' });
-    expect(view.ears).toBe('one');
+    expect(view.ears).toBe('right');
     expect(view.dim).toBe(false);
   });
 
@@ -37,8 +37,13 @@ describe('bubbleView', () => {
     expect(view.ears).toBe('up');
   });
 
-  it('keeps the ears on the 5h rings, so a high 7d window folds no ear', () => {
-    expect(bubbleView(update([account('acc1', 42, 133, false, 90)]), NOW).ears).toBe('up');
+  it('folds the left ear for a high 7d window', () => {
+    expect(bubbleView(update([account('acc1', 42, 133, false, 90)]), NOW).ears).toBe('left');
+  });
+
+  it('keeps a stale account out of the 7d ear rule', () => {
+    const accts = [account('acc1', 42, 133), account('acc2', 20, 47, true, 95)];
+    expect(bubbleView(update(accts), NOW).ears).toBe('up');
   });
 
   it('dims the whole bubble and folds both ears when no account is live', () => {
