@@ -16,7 +16,10 @@ body {
   position: relative;
   font-family: Inter, system-ui, sans-serif;
   color: #e0e2ea;
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.55));
+  /* The bubble has no drop shadow. The window holds the cells with a pad of PAD (2 px) in
+     src/layout.ts. A shadow that reaches past the pad meets the window edge, which cuts it in
+     a straight line and shows a faint rectangle. A future shadow must fit inside the pad, or
+     the pad must grow with it. */
   cursor: grab;
 }
 
@@ -54,6 +57,11 @@ body {
 .cell-text span {
   position: absolute;
   line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.cell-text .mark {
+  position: absolute;
   transform: translate(-50%, -50%);
 }
 
@@ -214,6 +222,24 @@ body {
   grid-template-columns: 24px minmax(0, 1fr) 40px 12px 128px;
   gap: 10px;
   align-items: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+}
+
+.card .nodata {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  color: #a0a4b8;
+}
+
+.card .credits {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: 'Fira Code', monospace;
   font-size: 12px;
 }

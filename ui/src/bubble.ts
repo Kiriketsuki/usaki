@@ -3,12 +3,28 @@
 
 import { READY } from './centre';
 import { ears } from './ears';
-import { ROW_SIZE } from './fit';
-import { APOTHEM, CELL_R, type RingGeometry, cellRings, hexPath, ringDash, ringNotch } from './geometry';
+import { MARK_SIZE } from './fit';
+import {
+  APOTHEM,
+  CELL_R,
+  type RingGeometry,
+  TRACK_DOT_SPACING,
+  cellRings,
+  hexCorners,
+  hexPath,
+  ringDash,
+  ringNotch,
+  trackDots
+} from './geometry';
+import { PROVIDER_COLOUR, markPoints } from './marks';
 import type { BubbleView, CellView, RingView } from './model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const TRACK = '#252836';
+/** The dots of an empty track, for a window that the account does not have. */
+const NO_WINDOW_DOTS = '#363a4f';
+/** The radius of one hex dot of an empty track, as a fraction of the ring stroke. */
+const TRACK_DOT_R = 0.8;
 /** The notch takes the glass tone, so it reads as a cut in the ring. */
 const NOTCH = '#161821';
 const EDGE = 'rgba(255,255,255,0.12)';
@@ -77,12 +93,45 @@ function ringNodes(c: CellView, g: RingGeometry, ring: RingView): SVGElement[] {
   ];
 }
 
+// A window that the account does not have draws an empty track of small flat-top hex dots,
+// with no arc and no notch. The dots read as empty, not as a low percent. The spacing scales
+// with the cell, so the head track is the body track scaled.
+function emptyRingNode(c: CellView, g: RingGeometry): SVGElement {
+  const el = svg('g', { fill: NO_WINDOW_DOTS });
+  const dotR = g.sw * TRACK_DOT_R;
+  el.append(
+    ...trackDots(g.r, c.x, c.y, (TRACK_DOT_SPACING * c.r) / CELL_R).map(([x, y]) =>
+      svg('polygon', { points: hexCorners(dotR, x, y).map((p) => p.join(',')).join(' ') })
+    )
+  );
+  return el;
+}
+
 function cellNode(c: CellView): SVGElement {
   const g = svg('g', { opacity: c.dim ? STALE_RINGS : 1 });
   g.append(svg('path', { d: hexPath(c.r, c.x, c.y), fill: 'none', stroke: EDGE, 'stroke-width': 1 }));
   const rings = cellRings(c.r);
-  if (c.rings) g.append(...ringNodes(c, rings.seven, c.rings.seven), ...ringNodes(c, rings.five, c.rings.five));
+  if (c.rings) {
+    const { five, seven } = c.rings;
+    g.append(
+      ...(seven ? ringNodes(c, rings.seven, seven) : [emptyRingNode(c, rings.seven)]),
+      ...(five ? ringNodes(c, rings.five, five) : [emptyRingNode(c, rings.five)])
+    );
+  }
   return g;
+}
+
+// The provider mark before the name. The fit gives its centre on a body cell.
+function markNode(c: CellView, k: number): SVGElement | null {
+  const place = c.fit.mark;
+  const provider = c.text.provider;
+  if (!place || !provider) return null;
+  const size = MARK_SIZE * k;
+  const el = svg('svg', { class: 'mark', width: size, height: size, viewBox: '0 0 ' + size + ' ' + size, 'aria-hidden': 'true' });
+  el.style.left = place.x * k + 'px';
+  el.style.top = place.y * k + 'px';
+  el.append(svg('polygon', { points: markPoints(provider, size), fill: PROVIDER_COLOUR[provider] }));
+  return el;
 }
 
 // The highlight runs just inside the cell edge, so it does not cover the next cell.
@@ -120,12 +169,14 @@ function labelNode(c: CellView): HTMLElement {
   if (c.dim) el.style.opacity = String(STALE_TEXT);
   // The fit works on a body cell. A bigger cell scales the whole text block with it.
   const k = c.r / CELL_R;
+  const mark = markNode(c, k);
+  if (mark) el.append(mark);
   el.append(
     ...c.fit.items.map((item) => {
       const span = html('span', item.role + (item.text === READY ? ' ready' : ''), item.text);
       span.style.left = item.x * k + 'px';
       span.style.top = item.y * k + 'px';
-      span.style.fontSize = ROW_SIZE[item.role] * k + 'px';
+      span.style.fontSize = item.size * k + 'px';
       return span;
     })
   );

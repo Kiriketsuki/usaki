@@ -67,6 +67,18 @@ pub enum Source {
     ClaudeCache,
     /// The usage API, called with the token of a watcher login.
     ClaudeWatch,
+    /// The `token_count` events in the Codex session logs.
+    CodexLogs,
+}
+
+/// The credits state of a Codex account, as the session logs give it.
+///
+/// The balance stays the string that Codex writes. The logs do not name its unit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Credits {
+    pub has_credits: bool,
+    pub unlimited: bool,
+    pub balance: Option<String>,
 }
 
 /// The usage of one account at one moment.
@@ -80,6 +92,9 @@ pub struct Snapshot {
     /// Why the snapshot is stale, when the provider knows the reason.
     #[serde(default)]
     pub stale_reason: Option<String>,
+    /// The credits state, for a provider that reports one.
+    #[serde(default)]
+    pub credits: Option<Credits>,
 }
 
 impl Snapshot {
@@ -97,6 +112,7 @@ impl Snapshot {
             source,
             stale,
             stale_reason: None,
+            credits: None,
         }
     }
 
@@ -106,6 +122,11 @@ impl Snapshot {
             stale_reason: Some(reason.into()),
             ..self
         }
+    }
+
+    /// Returns this snapshot with a credits state.
+    pub fn with_credits(self, credits: Option<Credits>) -> Self {
+        Self { credits, ..self }
     }
 
     /// Returns the window of the given kind, if the snapshot has one.

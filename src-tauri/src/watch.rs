@@ -13,6 +13,7 @@ use usaki_core::providers::claude_watch::{
 };
 use usaki_core::{Account, ClaudeCacheProvider, Clock, Provider, ProviderKind, SystemClock};
 
+use crate::codex::CodexSources;
 use crate::poller::{self, CacheDir, UPDATE_EVENT};
 
 /// The time between two watcher ticks. The call schedule of each account is longer.
@@ -48,7 +49,7 @@ pub fn cache_is_fresh<C: Clock>(cache_dir: &CacheDir, id: &str, clock: C) -> boo
 }
 
 /// Starts the watcher thread. Without a data directory the app runs without watchers.
-pub fn spawn(app: AppHandle, cache_dir: CacheDir, records: WatchRecords) {
+pub fn spawn(app: AppHandle, cache_dir: CacheDir, records: WatchRecords, codex: CodexSources) {
     let root = match watch_root_from_env() {
         Ok(root) => root,
         Err(e) => {
@@ -67,7 +68,7 @@ pub fn spawn(app: AppHandle, cache_dir: CacheDir, records: WatchRecords) {
             loop {
                 let fresh = |id: &str| cache_is_fresh(&cache_dir, id, SystemClock);
                 match watcher.tick(fresh) {
-                    Ok(latest) => publish(&app, &cache_dir, &records, latest),
+                    Ok(latest) => publish(&app, &cache_dir, &records, &codex, latest),
                     Err(e) => eprintln!(
                         "usaki: Cannot read the watch folder {}. {e}",
                         watcher.root().display()
@@ -86,6 +87,7 @@ fn publish(
     app: &AppHandle,
     cache_dir: &CacheDir,
     records: &WatchRecords,
+    codex: &CodexSources,
     latest: Vec<WatchRecord>,
 ) {
     let before = records.get();
@@ -97,7 +99,7 @@ fn publish(
         eprintln!("usaki: watch {}: {}", rec.account_id, describe(rec, now));
     }
     records.set(latest);
-    let update = poller::poll(cache_dir, &records.get(), SystemClock);
+    let update = poller::poll(cache_dir, &records.get(), codex, SystemClock);
     if let Err(e) = app.emit(UPDATE_EVENT, &update) {
         eprintln!("usaki: Cannot send the usage update. {e}");
     }

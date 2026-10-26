@@ -3,6 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod accounts;
+mod codex;
 #[cfg(target_os = "linux")]
 mod hyprland;
 mod placement;
@@ -16,6 +17,7 @@ mod window;
 
 use tauri::{Manager, State, WindowEvent};
 
+use crate::codex::CodexSources;
 use crate::placement::{Anchor, Home, Tracker};
 use crate::poller::CacheDir;
 use crate::view::UsageUpdate;
@@ -31,8 +33,14 @@ const BUBBLE_LABEL: &str = "bubble";
 async fn get_usage(
     cache_dir: State<'_, CacheDir>,
     watched: State<'_, WatchRecords>,
+    codex: State<'_, CodexSources>,
 ) -> Result<UsageUpdate, String> {
-    poller::poll_in_background(cache_dir.inner().clone(), watched.inner().clone()).await
+    poller::poll_in_background(
+        cache_dir.inner().clone(),
+        watched.inner().clone(),
+        codex.inner().clone(),
+    )
+    .await
 }
 
 /// Sets the window size. The page calls it when the cell count changes the cluster size,
@@ -113,10 +121,17 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("usaki: {reason}");
     }
     let watched = WatchRecords::default();
+    let codex = CodexSources::from_env();
     app.manage(cache_dir.clone());
     app.manage(watched.clone());
-    watch::spawn(app.handle().clone(), cache_dir.clone(), watched.clone());
-    poller::spawn(app.handle().clone(), cache_dir, watched);
+    app.manage(codex.clone());
+    watch::spawn(
+        app.handle().clone(),
+        cache_dir.clone(),
+        watched.clone(),
+        codex.clone(),
+    );
+    poller::spawn(app.handle().clone(), cache_dir, watched, codex);
     Ok(())
 }
 

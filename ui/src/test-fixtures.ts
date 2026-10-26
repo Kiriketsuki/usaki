@@ -15,12 +15,37 @@ export function account(
 ): AccountView {
   return {
     id,
+    provider: 'claude',
+    name: id,
     stale,
     fetchedAt: NOW,
     windows: [
       { minutes: 300, usedPct: pct, resetsAt: resetInMins == null ? null : NOW + resetInMins * MIN },
       { minutes: 10080, usedPct: sevenPct, resetsAt: sevenResetMins == null ? null : NOW + sevenResetMins * MIN }
     ],
-    error: null
+    error: null,
+    credits: null
+  };
+}
+
+/** A Codex account with a 7d window only, as the Pro plan reports it. */
+export function codexAccount(
+  name: string,
+  sevenPct: number,
+  sevenResetMins: number | null,
+  stale = false,
+  balance: string | null = '123.45'
+): AccountView {
+  return {
+    id: 'codex:' + name,
+    provider: 'codex',
+    name,
+    stale,
+    fetchedAt: NOW,
+    windows: [
+      { minutes: 10080, usedPct: sevenPct, resetsAt: sevenResetMins == null ? null : NOW + sevenResetMins * MIN }
+    ],
+    error: null,
+    credits: balance == null ? null : { hasCredits: true, unlimited: false, balance }
   };
 }

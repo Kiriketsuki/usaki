@@ -113,3 +113,37 @@ export function ringNotch(ring: RingGeometry, r: number, cx: number, cy: number)
 export function ringDash(pct: number): string {
   return Math.max(0, Math.min(100, pct)) + ' 100';
 }
+
+/** The target gap between two dot centres on an empty track of a body cell, in px. */
+export const TRACK_DOT_SPACING = 8;
+
+/**
+ * Returns the centres of the dots of an empty track: even steps along hexPath(r, cx, cy),
+ * clockwise from 12 o'clock, where the notch of a full ring sits. A flat-top hex has six
+ * sides of length r, and the path starts r / 2 before the first corner. A step of r / (2m)
+ * puts a dot on each corner, so the track keeps its hex shape. `m` is the whole number that
+ * brings the step closest to `spacing`.
+ */
+export function trackDots(r: number, cx: number, cy: number, spacing: number): [number, number][] {
+  const m = Math.max(1, Math.round(r / 2 / spacing));
+  const step = r / (2 * m);
+  const count = 12 * m;
+  const h = r * APOTHEM;
+  // The path corners in order, back to the start. Each leg after the first is one side.
+  const path: [number, number][] = [
+    [cx, cy - h],
+    ...hexCorners(r, cx, cy),
+    [cx, cy - h]
+  ];
+  return Array.from({ length: count }, (_, i) => {
+    const s = i * step;
+    // The first leg is r / 2 long. Each later leg is r long.
+    const leg = s < r / 2 ? 0 : Math.min(6, 1 + Math.floor((s - r / 2) / r));
+    const start = leg === 0 ? 0 : r / 2 + (leg - 1) * r;
+    const len = leg === 0 || leg === 6 ? r / 2 : r;
+    const t = (s - start) / len;
+    const [x0, y0] = path[leg];
+    const [x1, y1] = path[leg + 1];
+    return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
+  });
+}

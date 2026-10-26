@@ -7,11 +7,13 @@ import {
   HEAD_R,
   NOTCH_W,
   SEVEN_RING,
+  TRACK_DOT_SPACING,
   cellRings,
   hexCorners,
   hexPath,
   ringDash,
-  ringNotch
+  ringNotch,
+  trackDots
 } from './geometry';
 
 describe('hexPath', () => {
@@ -94,5 +96,49 @@ describe('ringDash', () => {
     expect(ringDash(42)).toBe('42 100');
     expect(ringDash(130)).toBe('100 100');
     expect(ringDash(-5)).toBe('0 100');
+  });
+});
+
+describe('trackDots', () => {
+  const { five } = cellRings(CELL_R);
+  const dots = trackDots(five.r, 100, 100, TRACK_DOT_SPACING);
+  const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+  it('puts 12 dots per corner pair, so the count is a multiple of 12', () => {
+    expect(dots.length % 12).toBe(0);
+    expect(dots.length).toBe(36);
+  });
+
+  it('starts at 12 o clock and steps evenly along the path, close to the target spacing', () => {
+    expect(dots[0][0]).toBeCloseTo(100, 6);
+    expect(dots[0][1]).toBeCloseTo(100 - five.r * APOTHEM, 6);
+    const step = (6 * five.r) / dots.length;
+    expect(Math.abs(step - TRACK_DOT_SPACING)).toBeLessThan(TRACK_DOT_SPACING / 2);
+    // On one side two neighbours are one step apart. Across a corner the chord is shorter.
+    dots.forEach((d, i) => {
+      const gap = dist(d, dots[(i + 1) % dots.length]);
+      expect(gap).toBeLessThanOrEqual(step + 1e-6);
+      expect(gap).toBeGreaterThan(step * 0.85);
+    });
+  });
+
+  it('puts a dot on every corner', () => {
+    for (const corner of hexCorners(five.r, 100, 100)) {
+      expect(Math.min(...dots.map((d) => dist(d, corner)))).toBeLessThan(1e-6);
+    }
+  });
+
+  it('keeps every dot on the track path', () => {
+    for (const [x, y] of dots) {
+      // A point on a flat-top hex path has a hex norm equal to the apothem.
+      const dx = Math.abs(x - 100);
+      const dy = Math.abs(y - 100);
+      expect(Math.max(dy, dx * APOTHEM + dy / 2)).toBeCloseTo(five.r * APOTHEM, 2);
+    }
+  });
+
+  it('scales with the cell, so the head track has the same count', () => {
+    const head = cellRings(HEAD_R).five;
+    expect(trackDots(head.r, 0, 0, (TRACK_DOT_SPACING * HEAD_R) / CELL_R)).toHaveLength(dots.length);
   });
 });

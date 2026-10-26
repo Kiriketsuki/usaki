@@ -113,9 +113,9 @@ export const EAR_POINTS: readonly Point[] = [EAR_UP, EAR_FOLD]
   .flatMap((s) => [...s.edge, ...s.facets.flatMap((f) => f.pts)])
   .map((p) => [p[0] * EAR_SCALE, p[1] * EAR_SCALE] as const);
 
-/** The 5h and the 7d percent of one live account. */
+/** The 5h and the 7d percent of one live account. A 7d-only account has no 5h percent. */
 export interface LiveWindows {
-  five: number;
+  five: number | null;
   seven: number;
 }
 
@@ -123,12 +123,14 @@ export interface LiveWindows {
  * The fold rule. Issue #11 split the rule of Main.dc.html between the ears. The right ear
  * folds when a live 5h window is at `crit` or more. The left ear folds when a live 7d
  * window is at `crit` or more. A full window in either set, or no live account, folds both.
+ * A 7d-only account counts for the left ear only.
  */
 export function earState(live: readonly LiveWindows[], crit: number): EarState {
-  const full = live.some((w) => w.five >= 100 || w.seven >= 100);
+  const five = (w: LiveWindows, at: number) => w.five != null && w.five >= at;
+  const full = live.some((w) => five(w, 100) || w.seven >= 100);
   if (live.length === 0 || full) return 'both';
   const left = live.some((w) => w.seven >= crit);
-  const right = live.some((w) => w.five >= crit);
+  const right = live.some((w) => five(w, crit));
   if (left && right) return 'both';
   if (left) return 'left';
   if (right) return 'right';

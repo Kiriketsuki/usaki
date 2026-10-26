@@ -16,7 +16,9 @@ describe('bubbleView', () => {
     expect(view.cells.map((c) => c.id)).toEqual(['acc2', 'acc1']);
     expect(view.cells[0].r).toBeGreaterThan(view.cells[1].r);
     expect(view.cells[0].text).toEqual({
+      provider: 'claude',
       name: 'acc2',
+      noData: false,
       five: { pct: '81%', countdown: '47m' },
       seven: { pct: '20%', countdown: '3d00h' }
     });
@@ -88,13 +90,13 @@ describe('bubbleView', () => {
 
   it('shows 0% for a window whose reset passed after the poll', () => {
     const view = bubbleView(update([account('acc1', 90, -1)]), NOW);
-    expect(view.cells[0].rings?.five.pct).toBe(0);
+    expect(view.cells[0].rings?.five?.pct).toBe(0);
   });
 
   it('names the auto account in full in the label', () => {
     const view = bubbleView(update([account('longname12ch', 81, 47, false, 58)]), NOW);
     expect(view.label).toBe(
-      'AI usage. Next reset: longname12ch. 5 hour window: 81% used, resets in 47m. ' +
+      'AI usage. Next reset: Claude longname12ch. 5 hour window: 81% used, resets in 47m. ' +
         '7 day window: 58% used, resets in 3d00h.' + CONTROLS_HINT
     );
   });
@@ -102,7 +104,7 @@ describe('bubbleView', () => {
   it('says ready in the label for an unused 5h window', () => {
     const view = bubbleView(update([account('acc1', 0, null, false, 100, 90)]), NOW);
     expect(view.label).toBe(
-      'AI usage. Next reset: acc1. 5 hour window: 0% used, ready. 7 day window: 100% used, resets in 1h30m.' +
+      'AI usage. Next reset: Claude acc1. 5 hour window: 0% used, ready. 7 day window: 100% used, resets in 1h30m.' +
         CONTROLS_HINT
     );
   });
@@ -121,7 +123,7 @@ describe('bubbleView', () => {
     expect(pinned.mode).toBe('pinned');
     expect(pinned.cells.map((c) => c.id)).toEqual(['acc3', 'acc1', 'acc2']);
     expect(pinned.cells.map((c) => c.highlight)).toEqual([true, false, false]);
-    expect(pinned.label.startsWith('AI usage. Pinned: acc3.')).toBe(true);
+    expect(pinned.label.startsWith('AI usage. Pinned: Claude acc3.')).toBe(true);
     expect([pinned.layout.width, pinned.layout.height]).toEqual([auto.layout.width, auto.layout.height]);
   });
 
