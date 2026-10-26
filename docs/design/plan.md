@@ -35,8 +35,9 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
   - The rabbit in the moon (tsuki no usagi): each 7d reset shows a small moon-phase glyph that fills as the reset gets closer.
   - A 220 ms hop when a window resets. This is a deliberate exception to the Chrysaki no-bounce rule. Plain rabbit wording ("burrowed", "hop") was not chosen.
 - **Fullscreen:** the bubble must stay above fullscreen windows. The user confirmed this on 2026-10-23.
-  A Tauri window on Hyprland is a normal toplevel, so a fullscreen app probably covers it. Only layer-shell stays above.
-  The spike tests this first. If the toplevel fails, the Linux build uses layer-shell.
+  The spike (`docs/spikes/2026-10-23-hyprland-window.md`) showed that a toplevel stays above fullscreen when Hyprland pins it from the map.
+  The user chose the pinned toplevel on 2026-10-26. A layer-shell overlay also stays above fullscreen, but its drag loses the pointer and it cannot cross monitors.
+  The app never toggles pin itself. If a window loses its pin during a fullscreen change, Hyprland hides it.
   The mockup's toggle is now off and says "(untested on Linux)".
 
 ## Architecture
@@ -57,7 +58,9 @@ src-tauri/src/
     codex_logs.rs    scans the newest session jsonl backwards for token_count
     gemini.rs        best effort
   position.rs        saves and restores x and y. On Hyprland it detects HYPRLAND_INSTANCE_SIGNATURE and runs
-                     `hyprctl dispatch movewindowpixel exact X Y,title:^usaki$` after the map. Elsewhere it uses set_position.
+                     `hyprctl dispatch movewindowpixel exact X Y,class:^usaki$` after the map, because Tauri
+                     set_position and set_size do nothing there. Size goes through GTK set_size_request, and
+                     a move after each resize keeps the top-left fixed. Elsewhere it uses set_position.
 ui/ (Vite + vanilla TS, no framework, to keep the webview light)
   bubble.ts          hex ring SVG: port hexPath() and the ring maths from Bubble.dc.html
   card.ts            expanded card: port of Card.dc.html
@@ -76,7 +79,7 @@ Window flags: `decorations: false`, `transparent: true`, `alwaysOnTop: true`, `s
    `{account, five_hour, seven_day, written_at}` to `${XDG_CACHE_HOME:-$HOME/.cache}/usaki/claude-<acct>.json` through a temp file and `mv`.
    The account comes from the same rule as lines 140 to 148: `CLAUDE_CONFIG_DIR`, else `.workspace.current_dir` matching the account 2 work directory.
    This block must stay above the early exit, because the mod path exits there.
-2. `~/dots/hypr/.config/hypr/hyprland.conf`: add windowrules for `title:^usaki$`: float, pin, no border, no shadow, no rounding, no focus on map.
+2. `~/dots/hypr/.config/hypr/hyprland.conf`: add the `usaki-bubble` windowrule from the spike report. It matches `class:^usaki$` and sets float, pin, no border, no shadow, no rounding, no focus on map, no dim and an opacity override.
 
 ## Milestones
 

@@ -17,6 +17,22 @@ Issue: #2. Date: 2026-10-23. Code: `spikes/hypr-window/`.
   The app must use hyprctl (toplevel) or layer margins (layer-shell) for position, and
   GTK `set_size_request` for size.
 
+## Decision (2026-10-26)
+
+The user tested both drags with a real pointer and chose the **pinned toplevel** for Linux.
+
+- Toplevel drag: pass. The window followed the pointer and stayed where the user
+  released it. The test did not cross monitors.
+- Layer drag: fail. The surface followed the pointer for a short distance and then lost
+  it. A layer surface gets pointer events only while the pointer is over it. The surface
+  also belongs to one output, so it cannot move to the next monitor.
+
+The app therefore uses a normal toplevel with the `usaki-bubble` rule in
+[hyprland.conf rules](#hyprlandconf-rules). The rule pins the window from the moment it
+maps, which keeps it above fullscreen windows. The app never toggles pin itself. The rule
+matches only the app_id `usaki`, so it does not change how the user pins other windows.
+The layer-shell analysis below stays as a record of the rejected option.
+
 ## Environment
 
 | Item | Value |
@@ -233,7 +249,7 @@ pointer. The spike tested the command path. The pointer path needs the manual ch
 | Tauri `set_size` | `Ok(())`, no change, on both the toplevel and the layer surface. |
 | GTK `set_size_request` plus `resize` | Works. On the toplevel, Hyprland keeps the window centre: 200x200 at 2780,440 became 152x188 at 2804,446. The app must move the window after a resize to keep the top-left fixed. On the layer surface, the top-left stays fixed. |
 
-## Recommended Linux window approach
+## Spike recommendation (rejected on 2026-10-26)
 
 **Layer-shell overlay for the bubble and the card.** Reasons:
 
@@ -269,7 +285,7 @@ use the toplevel with the rules below. Check for layer-shell support with
 
 ## hyprland.conf rules
 
-Layer-shell path (recommended). No rule is required. This one turns off the open animation:
+Layer-shell path (rejected). No rule is required. This one turns off the open animation:
 
 ```
 layerrule {
@@ -279,7 +295,7 @@ layerrule {
 }
 ```
 
-Toplevel path (fallback). The rule matches the Wayland app_id (class), not the title. The
+Toplevel path (chosen). The rule matches the Wayland app_id (class), not the title. The
 spike app uses the class `usaki-spike-hypr-window`. The real app must set its app_id to
 `usaki`. The settings window must use another app_id so it does not match. A title match
 would also catch any other window with the title `usaki`. `Hyprland --verify-config`
@@ -342,6 +358,9 @@ The spike tested none of these. The spike ran on Linux only.
    release it.
 2. Layer drag: run the layer-shell command, left-drag the hex, and confirm that it follows
    the pointer and `hyprctl layers -j` shows the new `x` and `y`.
+
+Results on 2026-10-26: check 1 passed and check 2 failed. See
+[Decision](#decision-2026-10-26).
 
 ## Session clean-up
 
