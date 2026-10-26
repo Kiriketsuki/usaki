@@ -1,5 +1,6 @@
-// The auto pick and the cell text. The auto pick comes from docs/design/mockup/Main.dc.html.
-// Milestone 1 has the auto mode only. Right-click and middle-click come in milestone 2.
+// The head pick and the cell text. The auto pick and the cycle come from
+// docs/design/mockup/Main.dc.html. A right-click pins the next account in the head, and a
+// middle-click returns the head to auto.
 
 import { left, minutesUntil } from './countdown';
 import { type AccountView, FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES, type WindowNow, fiveHour, windowAt } from './usage';
@@ -57,4 +58,49 @@ export function pickAuto(accounts: readonly AccountView[], now: number): Account
       (best, a) => (best == null || nextResetKey(a, now) < nextResetKey(best, now) ? a : best),
       null
     );
+}
+
+/**
+ * The head mode. Null is auto: the head is the live account with the earliest 5h reset. An
+ * account id pins that account in the head.
+ */
+export type Pin = string | null;
+
+/**
+ * How the head was chosen. `auto` and `pinned` get a highlight. `none` means auto mode with
+ * no live account, so the first account fills the head with no highlight.
+ */
+export type HeadMode = 'auto' | 'pinned' | 'none';
+
+export interface Head {
+  account: AccountView | null;
+  mode: HeadMode;
+}
+
+/** Returns the head at `now`. A pin whose account is gone falls back to auto. */
+export function pickHead(accounts: readonly AccountView[], pin: Pin, now: number): Head {
+  const pinned = pin == null ? undefined : accounts.find((a) => a.id === pin);
+  if (pinned) return { account: pinned, mode: 'pinned' };
+  const auto = pickAuto(accounts, now);
+  if (auto) return { account: auto, mode: 'auto' };
+  return { account: accounts[0] ?? null, mode: 'none' };
+}
+
+/**
+ * Right-click: pins the account after the current head, in account order. It wraps from the
+ * last account to the first and never returns to auto. With no account it stays auto.
+ */
+export function nextPin(accounts: readonly AccountView[], pin: Pin, now: number): Pin {
+  if (accounts.length === 0) return null;
+  const head = pickHead(accounts, pin, now).account;
+  const from = head ? accounts.indexOf(head) : -1;
+  return accounts[(from + 1) % accounts.length].id;
+}
+
+/** Middle-click: returns the head to auto. */
+export const AUTO: Pin = null;
+
+/** Keeps a pin only while its account exists. A pin on a gone account becomes auto. */
+export function keepPin(accounts: readonly AccountView[], pin: Pin): Pin {
+  return pin != null && accounts.some((a) => a.id === pin) ? pin : AUTO;
 }

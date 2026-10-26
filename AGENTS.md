@@ -58,6 +58,10 @@ Run the bun commands in `ui/` and the cargo commands at the repo root.
 - `bun run test` runs vitest. Do not use `bun test`, which starts the bun test runner.
 - A plain `cargo build` gives a dev binary that loads the Vite dev server. Use
   `bun run tauri build` for a binary with the page inside it.
+- The window position lives in `dirs::state_dir()/usaki/position.json` (the data folder on
+  Windows). `USAKI_STATE_DIR` replaces that folder, so a test run never writes the real file.
+- A debug build reads `USAKI_DEBUG_UI`, a comma-separated list of `right`, `middle`, `open` and
+  `close`. The page runs one action every 3 s, for live checks without a mouse.
 - On Hyprland the bubble needs the `usaki-bubble` window rule from
   `docs/spikes/2026-10-23-hyprland-window.md`. The rule floats and pins the window.
 

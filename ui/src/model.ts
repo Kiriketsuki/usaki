@@ -1,6 +1,6 @@
 // Turns the backend data into what the bubble draws. It holds no DOM code.
 
-import { type CellText, NO_DATA, READY, type WindowText, cellText, pickAuto } from './centre';
+import { AUTO, type CellText, type HeadMode, NO_DATA, type Pin, READY, type WindowText, cellText, pickHead } from './centre';
 import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
 import { type EarState, earState } from './ears';
 import { type CellFit, fitCell } from './fit';
@@ -25,7 +25,7 @@ export interface CellView {
   fit: CellFit;
   /** True for a stale account. The cell then dims. */
   dim: boolean;
-  /** True for the auto account, the one whose 5h window resets next. */
+  /** True for the head when it is the auto account or a pinned account. */
   highlight: boolean;
 }
 
@@ -33,6 +33,8 @@ export interface BubbleView {
   cells: CellView[];
   layout: Layout;
   ears: EarState;
+  /** How the head was chosen. A pinned head gets its own outline tone and a stud. */
+  mode: HeadMode;
   /** True when no account is live. The whole bubble then dims. */
   dim: boolean;
   label: string;
@@ -48,14 +50,18 @@ function spoken(w: WindowText): string {
   return w.pct + ' used, resets in ' + w.countdown;
 }
 
+/** The control hint at the end of the bubble label. */
+export const CONTROLS_HINT =
+  ' Click to open the card. Right-click pins the next account. Middle-click returns to auto.';
+
 // The label carries the full account name, so a screen reader hears it even when the
 // fit cuts it on screen.
-function ariaLabel(shown: AccountView | null, now: number): string {
-  if (!shown) return 'AI usage. No fresh data.';
-  const t = cellText(shown, now);
+function ariaLabel(head: AccountView | null, mode: HeadMode, now: number): string {
+  if (!head || mode === 'none') return 'AI usage. No fresh data.' + CONTROLS_HINT;
+  const t = cellText(head, now);
   return (
-    'AI usage. Next reset: ' + t.name + '. 5 hour window: ' + spoken(t.five) +
-    '. 7 day window: ' + spoken(t.seven) + '.'
+    'AI usage. ' + (mode === 'pinned' ? 'Pinned: ' : 'Next reset: ') + t.name +
+    '. 5 hour window: ' + spoken(t.five) + '. 7 day window: ' + spoken(t.seven) + '.' + CONTROLS_HINT
   );
 }
 
@@ -64,27 +70,27 @@ function noDataCell(at: Cell): CellView {
 }
 
 /**
- * Puts the accounts in cell order. The auto account is the head, cell 0. With no live
- * account the first account is the head. The others follow in account order as the body.
+ * Puts the accounts in cell order. The head is cell 0. The others follow in account order
+ * as the body.
  */
-export function headFirst(accounts: readonly AccountView[], auto: AccountView | null): AccountView[] {
-  const head = auto ?? accounts[0];
-  return head ? [head, ...accounts.filter((a) => a !== head)] : [];
+export function headFirst(accounts: readonly AccountView[], head: AccountView | null): AccountView[] {
+  return head ? [head, ...accounts.filter((a) => a !== head)] : [...accounts];
 }
 
 /**
- * Returns the bubble at `now`: one hex cell per account, laid out as a rabbit. The auto
- * account is the head and carries the ears. Each cell has a 7d ring outside and a 5h ring
- * inside it.
+ * Returns the bubble at `now`: one hex cell per account, laid out as a rabbit. The head is
+ * the pinned account, or else the auto account, and it carries the ears. Each cell has a 7d
+ * ring outside and a 5h ring inside it.
  */
 export function bubbleView(
   update: UsageUpdate | null,
   now: number,
+  pin: Pin = AUTO,
   thresholds: Thresholds = DEFAULT_THRESHOLDS
 ): BubbleView {
   const accounts = update?.accounts ?? [];
   const lay = layout(accounts.length);
-  const shown = pickAuto(accounts, now);
+  const { account: shown, mode } = pickHead(accounts, pin, now);
   const cells =
     accounts.length === 0
       ? [noDataCell(lay.cells[0])]
@@ -100,7 +106,7 @@ export function bubbleView(
             text,
             fit: fitCell(text),
             dim: a.stale,
-            highlight: a === shown
+            highlight: a === shown && mode !== 'none'
           };
         });
   // The right ear follows the live 5h windows and the left ear the live 7d windows.
@@ -111,7 +117,8 @@ export function bubbleView(
     cells,
     layout: lay,
     ears: earState(live, thresholds.crit),
+    mode,
     dim: live.length === 0,
-    label: ariaLabel(shown, now)
+    label: ariaLabel(shown, mode, now)
   };
 }

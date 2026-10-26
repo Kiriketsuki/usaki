@@ -14,6 +14,14 @@ const NOTCH = '#161821';
 const EDGE = 'rgba(255,255,255,0.12)';
 const HIGHLIGHT = '#e0e2ea';
 const HIGHLIGHT_SW = 1.5;
+/** A pinned head swaps the bright outline for the amethyst of the inner ear. */
+const PINNED = '#7a4fb8';
+/** The pin stud between the ears: a Blonde diamond, like the eye stud of the rabbit-head mark. */
+const STUD = '#FBB13C';
+const STUD_HALF_W = 3.5;
+const STUD_HALF_H = 4.5;
+/** The gap between the stud tip and the top edge of the head, in px. */
+const STUD_LIFT = 1.5;
 /** The opacity of the rings and of the text of a stale cell. The text stays brighter, so it still reads. */
 const STALE_RINGS = 0.4;
 const STALE_TEXT = 0.6;
@@ -78,15 +86,29 @@ function cellNode(c: CellView): SVGElement {
 }
 
 // The highlight runs just inside the cell edge, so it does not cover the next cell.
-function highlightNode(c: CellView): SVGElement {
+function highlightNode(c: CellView, pinned: boolean): SVGElement {
   const r = (c.r * APOTHEM - HIGHLIGHT_SW / 2) / APOTHEM;
   return svg('path', {
     d: hexPath(r, c.x, c.y),
     fill: 'none',
-    stroke: HIGHLIGHT,
-    'stroke-opacity': 0.7,
+    stroke: pinned ? PINNED : HIGHLIGHT,
+    'stroke-opacity': pinned ? 1 : 0.7,
     'stroke-width': HIGHLIGHT_SW
   });
+}
+
+// The stud sits in the gap between the two ear bases, above the top edge of the head, so it
+// covers no ring and no text.
+function studNode(c: CellView): SVGElement {
+  const tip = c.y - c.r * APOTHEM - STUD_LIFT;
+  const mid = tip - STUD_HALF_H;
+  const points = [
+    [c.x, tip],
+    [c.x + STUD_HALF_W, mid],
+    [c.x, mid - STUD_HALF_H],
+    [c.x - STUD_HALF_W, mid]
+  ];
+  return svg('polygon', { points: points.map((p) => p.join(',')).join(' '), fill: STUD });
 }
 
 // Each text item sits on its own point around the cell centre, so the rows share one
@@ -125,9 +147,12 @@ export function renderBubble(root: HTMLElement, view: BubbleView): void {
   const glass = cells.map((c) => hexPath(c.r, c.x, c.y)).join(' ');
   part<HTMLElement>(root, '.glass').style.clipPath = "path('" + glass + "')";
   part<SVGElement>(root, '.ears').replaceChildren(...earNodes(view));
+  const pinned = view.mode === 'pinned';
+  const head = view.cells[0];
   part<SVGElement>(root, '.cells').replaceChildren(
     ...view.cells.map(cellNode),
-    ...view.cells.filter((c) => c.highlight).map(highlightNode)
+    ...view.cells.filter((c) => c.highlight).map((c) => highlightNode(c, pinned)),
+    ...(pinned && head ? [studNode(head)] : [])
   );
   part<HTMLElement>(root, '.labels').replaceChildren(...view.cells.map(labelNode));
 }
