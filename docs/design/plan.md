@@ -186,7 +186,8 @@ Onboarding for install and first run is issue #14.
 
 - Unit tests (Rust): Claude parser against fixtures for the flat shape and the `limits[]` shape. Codex parser against a real
   `token_count` line with `primary` 10080 and `secondary` null. Stale detection. The watcher reads the credentials file with
-  `read_to_string` only. A guard test for that rule is still open.
+  `read_to_string` only. The guard test `watcher_module_never_writes_files_or_refreshes` fails when the watcher
+  module gains any file write or any use of the refresh token.
 - Unit tests (vitest): the head logic, countdown text, the layout sizes, the ear fold rule, the pads, the plate and the card sizes.
   The first right-click from auto goes to the account after the shown one. The cycle wraps, and a middle-click returns to auto.
 - Manual on Hyprland: drag, restart, and confirm the restored position. Confirm that the bubble stays pinned across workspaces and on its
