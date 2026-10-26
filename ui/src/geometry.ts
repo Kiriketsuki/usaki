@@ -86,6 +86,29 @@ export function cellRings(r: number): CellRings {
 /** The rings of a body cell. */
 export const { seven: SEVEN_RING, five: FIVE_RING } = cellRings(CELL_R);
 
+/** The width of the start notch of a body cell ring, in px. */
+export const NOTCH_W = 1.5;
+
+/**
+ * Returns the polygon points of the start notch of `ring` in a cell of radius `r` at
+ * (cx, cy). The notch is a thin cut across the ring at 12 o'clock, where the progress
+ * starts. It marks the start, and it breaks a full ring, so a 100% ring does not read as the
+ * cell outline. It overshoots each ring edge by 0.5 px, so no thin line of colour stays.
+ */
+export function ringNotch(ring: RingGeometry, r: number, cx: number, cy: number): string {
+  const half = (NOTCH_W * r) / CELL_R / 2;
+  const top = cy - ring.outer - 0.5;
+  const bottom = cy - ring.inner + 0.5;
+  return [
+    [cx - half, top],
+    [cx + half, top],
+    [cx + half, bottom],
+    [cx - half, bottom]
+  ]
+    .map(([x, y]) => x + ',' + y)
+    .join(' ');
+}
+
 /** The stroke-dasharray of a ring with pathLength 100. It clamps pct to 0..100. */
 export function ringDash(pct: number): string {
   return Math.max(0, Math.min(100, pct)) + ' 100';

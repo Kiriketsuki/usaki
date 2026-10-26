@@ -4,10 +4,14 @@ import {
   CELL_APOTHEM,
   CELL_R,
   FIVE_RING,
+  HEAD_R,
+  NOTCH_W,
   SEVEN_RING,
+  cellRings,
   hexCorners,
   hexPath,
-  ringDash
+  ringDash,
+  ringNotch
 } from './geometry';
 
 describe('hexPath', () => {
@@ -56,6 +60,32 @@ describe('cell rings', () => {
     for (const g of [FIVE_RING, SEVEN_RING]) {
       expect(g.r * APOTHEM).toBeCloseTo((g.outer + g.inner) / 2, 9);
     }
+  });
+});
+
+describe('ringNotch', () => {
+  const parse = (s: string) => s.split(' ').map((p) => p.split(',').map(Number));
+
+  it('cuts across the whole 7d ring at 12 o clock, with 0.5 px to spare on each edge', () => {
+    const pts = parse(ringNotch(SEVEN_RING, CELL_R, 100, 200));
+    const xs = pts.map(([x]) => x);
+    const ys = pts.map(([, y]) => y);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(NOTCH_W, 9);
+    expect((Math.max(...xs) + Math.min(...xs)) / 2).toBeCloseTo(100, 9);
+    expect(Math.min(...ys)).toBeCloseTo(200 - SEVEN_RING.outer - 0.5, 9);
+    expect(Math.max(...ys)).toBeCloseTo(200 - SEVEN_RING.inner + 0.5, 9);
+  });
+
+  it('stays inside the cell and clear of the 5h ring', () => {
+    const ys = parse(ringNotch(SEVEN_RING, CELL_R, 0, 0)).map(([, y]) => y);
+    expect(-Math.min(...ys)).toBeLessThan(CELL_APOTHEM);
+    expect(-Math.max(...ys)).toBeGreaterThan(FIVE_RING.outer);
+  });
+
+  it('grows with the cell', () => {
+    const big = cellRings(HEAD_R).seven;
+    const xs = parse(ringNotch(big, HEAD_R, 0, 0)).map(([x]) => x);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo((NOTCH_W * HEAD_R) / CELL_R, 9);
   });
 });
 

@@ -4,11 +4,13 @@
 import { READY } from './centre';
 import { ears } from './ears';
 import { ROW_SIZE } from './fit';
-import { APOTHEM, CELL_R, type RingGeometry, cellRings, hexPath, ringDash } from './geometry';
+import { APOTHEM, CELL_R, type RingGeometry, cellRings, hexPath, ringDash, ringNotch } from './geometry';
 import type { BubbleView, CellView, RingView } from './model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const TRACK = '#252836';
+/** The notch takes the glass tone, so it reads as a cut in the ring. */
+const NOTCH = '#161821';
 const EDGE = 'rgba(255,255,255,0.12)';
 const HIGHLIGHT = '#e0e2ea';
 const HIGHLIGHT_SW = 1.5;
@@ -62,7 +64,8 @@ function ringNodes(c: CellView, g: RingGeometry, ring: RingView): SVGElement[] {
       pathLength: 100,
       'stroke-dasharray': ringDash(ring.pct),
       'stroke-linecap': 'butt'
-    })
+    }),
+    svg('polygon', { points: ringNotch(g, c.r, c.x, c.y), fill: NOTCH })
   ];
 }
 
