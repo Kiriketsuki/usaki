@@ -1,10 +1,11 @@
-/* Ported from docs/design/mockup/Bubble.dc.html. Chrysaki: no border-radius. */
+/* Ported from docs/design/mockup/Bubble.dc.html. Chrysaki: no border-radius. The page sets
+   the bubble size from the cell layout. */
 
 html,
 body {
   margin: 0;
-  width: 152px;
-  height: 188px;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: transparent;
   user-select: none;
@@ -12,8 +13,6 @@ body {
 }
 
 .bubble {
-  width: 152px;
-  height: 188px;
   position: relative;
   font-family: Inter, system-ui, sans-serif;
   color: #e0e2ea;
@@ -21,64 +20,54 @@ body {
   cursor: grab;
 }
 
-.ears {
+.ears,
+.cells,
+.glass,
+.labels {
   position: absolute;
   left: 0;
   top: 0;
 }
 
-.hex {
-  position: absolute;
-  left: 0;
-  top: 36px;
-  width: 152px;
-  height: 152px;
-}
-
 .glass {
-  position: absolute;
   inset: 0;
-  clip-path: polygon(25% 6.7%, 75% 6.7%, 100% 50%, 75% 93.3%, 25% 93.3%, 0 50%);
   background: rgba(22, 24, 33, 0.88);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
-.rings {
-  position: absolute;
+.labels {
   inset: 0;
+  pointer-events: none;
 }
 
-/* src/fit.ts mirrors the gap and the line-heights below. Change them together. The
-   page sets the font sizes and the vertical move of .text from the fit. */
-.text {
+/* src/fit.ts mirrors the gap, the font sizes and the line-heights below. Change them
+   together. */
+.cell-text {
   position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 1px;
-  pointer-events: none;
   font-family: 'Fira Code', monospace;
   white-space: nowrap;
 }
 
-.top {
-  font-size: 9px;
-  line-height: 1.2;
-  color: #a0a4b8;
-}
-
-.centre {
-  font-size: 17px;
+.countdown {
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.1;
   color: #e0e2ea;
 }
 
-.sub {
-  font-size: 10px;
+.name {
+  font-size: 8px;
+  line-height: 1.2;
+  color: #e0e2ea;
+}
+
+.figures {
+  font-size: 8px;
   line-height: 1.2;
   color: #a0a4b8;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NO_DATA, accountLine, centreText, figures, pickAuto } from './centre';
+import { cellText, figures, pickAuto } from './centre';
 import { NOW, account } from './test-fixtures';
 import type { AccountView } from './usage';
 
@@ -25,27 +25,21 @@ describe('pickAuto', () => {
   });
 });
 
-describe('centreText', () => {
-  it('shows the mode, the countdown, the name and the 5h and 7d percent', () => {
-    const accts = [account('acc1', 42, 133), account('acc2', 81, 47, false, 58)];
-    expect(centreText(accts, NOW)).toEqual({
-      top: 'next 5h',
-      centre: '47m',
+describe('cellText', () => {
+  it('shows the 5h countdown, the name and the 5h and 7d percent', () => {
+    expect(cellText(account('acc2', 81, 47, false, 58), NOW)).toEqual({
+      countdown: '47m',
       name: 'acc2',
       figures: '81/58%'
     });
   });
 
   it('rounds both percents', () => {
-    expect(centreText([account('acc1', 41.6, 133, false, 57.5)], NOW).figures).toBe('42/58%');
+    expect(cellText(account('acc1', 41.6, 133, false, 57.5), NOW).figures).toBe('42/58%');
   });
 
   it('shows -- for an unknown reset', () => {
-    expect(centreText([account('acc1', 42, null)], NOW).centre).toBe('--');
-  });
-
-  it('shows no data when no account is live', () => {
-    expect(centreText([account('acc1', 42, 10, true)], NOW)).toEqual(NO_DATA);
+    expect(cellText(account('acc1', 42, null), NOW).countdown).toBe('--');
   });
 });
 
@@ -64,15 +58,5 @@ describe('figures', () => {
       windows: a.windows.map((w) => (w.minutes === 10080 ? { ...w, resetsAt: NOW - 1 } : w))
     };
     expect(figures(past, NOW)).toBe('42/0%');
-  });
-});
-
-describe('accountLine', () => {
-  it('joins the name and the figures with one space', () => {
-    expect(accountLine('acc1', '81/58%')).toBe('acc1 81/58%');
-  });
-
-  it('shows the name alone when there are no figures', () => {
-    expect(accountLine('offline', '')).toBe('offline');
   });
 });
