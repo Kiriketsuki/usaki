@@ -22,6 +22,9 @@ const PITCH_A = CELL_APOTHEM + CELL_GAP / 2;
 const PITCH_R = PITCH_A / APOTHEM;
 const HEAD_A = HEAD_R * APOTHEM;
 
+/** The account count from which the head sits between two shoulder cells. */
+export const SHOULDER_COUNT = 6;
+
 /**
  * Returns body site `i`, relative to the chest cell at (0, 0). Site 0 is the chest, under
  * the head. Then come the left haunch, the right haunch and the cell under the chest. More
@@ -35,6 +38,20 @@ export function bodySite(i: number): Point {
   return { x: (slot === 0 ? -1.5 : 1.5) * PITCH_R, y: (2 * row + 1) * PITCH_A };
 }
 
+/**
+ * Returns body site `i` of a head between two shoulders, relative to the chest site at
+ * (0, 0), which stays empty. Sites 0 and 1 are the left and the right shoulder beside the
+ * lower half of the head. Then come the cell under the head and the two haunches. More cells
+ * repeat that row of three further down. Six accounts then stay as short as five.
+ */
+export function shoulderSite(i: number): Point {
+  if (i < 2) return { x: (i === 0 ? -1.5 : 1.5) * PITCH_R, y: PITCH_A };
+  const row = Math.floor((i - 2) / 3);
+  const slot = (i - 2) % 3;
+  if (slot === 0) return { x: 0, y: (2 * row + 2) * PITCH_A };
+  return { x: (slot === 1 ? -1.5 : 1.5) * PITCH_R, y: (2 * row + 3) * PITCH_A };
+}
+
 // Two body cells sit as two feet beside the lower half of the head. Each foot faces a lower
 // slanted edge of the head with CELL_GAP between. The head centre then sits at this y,
 // relative to the feet sites, which are the left and the right haunch.
@@ -46,11 +63,15 @@ function headYOverFeet(): number {
 }
 
 // The cells relative to the chest site, head first. One body cell sits as the chest. Two
-// sit as feet. Three or more fill the body sites in order under a head that rests on the chest.
+// sit as feet. Three to five fill the body sites in order under a head that rests on the
+// chest. Six or more put the head between two shoulders and fill the shoulder sites.
 function rawCells(count: number): Cell[] {
   const body = Math.max(0, count - 1);
   const bodyCell = (p: Point): Cell => ({ ...p, r: CELL_R });
   if (body === 2) return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, bodyCell(bodySite(1)), bodyCell(bodySite(2))];
+  if (count >= SHOULDER_COUNT) {
+    return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, ...Array.from({ length: body }, (_, i) => bodyCell(shoulderSite(i)))];
+  }
   const head: Cell = { x: 0, y: -(CELL_APOTHEM + CELL_GAP + HEAD_A), r: HEAD_R };
   return [head, ...Array.from({ length: body }, (_, i) => bodyCell(bodySite(i)))];
 }

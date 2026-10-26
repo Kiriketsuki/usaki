@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ears } from './ears';
 import { APOTHEM, CELL_R, HEAD_R } from './geometry';
-import { CELL_GAP, PAD, bodySite, cellGap, layout } from './layout';
+import { CELL_GAP, PAD, SHOULDER_COUNT, bodySite, cellGap, layout, shoulderSite } from './layout';
 
 const EPS = 1e-6;
 
@@ -57,7 +57,7 @@ describe('layout', () => {
     });
   }
 
-  for (const count of [2, 3, 4, 5]) {
+  for (const count of [2, 3, 4, 5, 6]) {
     it(`balances ${count} accounts left and right around the head`, () => {
       const { cells } = layout(count);
       const mid = cells[0].x;
@@ -93,11 +93,28 @@ describe('layout', () => {
 
   it('sizes the window for each count from 1 to 6', () => {
     const sizes = [1, 2, 3, 4, 5, 6].map((n) => [layout(n).width, layout(n).height]);
-    expect(sizes).toEqual([[134, 233], [144, 293], [299, 257], [299, 338], [299, 383], [299, 428]]);
+    expect(sizes).toEqual([[134, 233], [144, 293], [299, 257], [299, 338], [299, 383], [299, 347]]);
   });
 
   it('sizes the one cell window to match the Rust start size', () => {
     expect([layout(1).width, layout(1).height]).toEqual([134, 233]);
+  });
+
+  it('keeps 6 accounts under 360 px tall, with the head between two shoulders', () => {
+    const lay = layout(SHOULDER_COUNT);
+    expect(lay.height).toBeLessThanOrEqual(360);
+    const [head, left, right, under, ...haunches] = lay.cells;
+    expect(cellGap(head, left)).toBeCloseTo(CELL_GAP, 9);
+    expect(cellGap(head, right)).toBeCloseTo(CELL_GAP, 9);
+    expect(under.x).toBeCloseTo(head.x, 9);
+    expect(under.y).toBeGreaterThan(head.y);
+    haunches.forEach((c) => expect(c.y).toBeGreaterThan(under.y));
+  });
+
+  it('grows the shoulder body as rows of three under the head', () => {
+    expect(shoulderSite(2).x).toBeCloseTo(0, 9);
+    expect(shoulderSite(3).x).toBeCloseTo(shoulderSite(0).x, 9);
+    expect(shoulderSite(5).y).toBeGreaterThan(shoulderSite(2).y);
   });
 
   it('gives zero accounts the head only window', () => {

@@ -29,8 +29,8 @@ describe('footPads', () => {
 
       it('puts the pads in the lower part of the bubble, left and right in balance', () => {
         lay.pads.forEach((p) => expect(p.y).toBeGreaterThan(lay.cells[0].y));
-        // Past 5 accounts the body rows fill from the left, so only 1 to 5 balance.
-        if (count > 5) return;
+        // Past 6 accounts the body rows fill from the left, so only 1 to 6 balance.
+        if (count > 6) return;
         const mid = lay.cells[0].x;
         const key = (x: number, y: number) => `${(x - mid).toFixed(6)},${y.toFixed(6)}`;
         expect(new Set(lay.pads.map((p) => key(2 * mid - p.x, p.y)))).toEqual(new Set(lay.pads.map((p) => key(p.x, p.y))));
