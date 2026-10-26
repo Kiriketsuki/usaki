@@ -16,7 +16,10 @@ body {
   position: relative;
   font-family: Inter, system-ui, sans-serif;
   color: #e0e2ea;
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.55));
+  /* The bubble has no drop shadow. The window holds the cells with a pad of PAD (2 px) in
+     src/layout.ts. A shadow that reaches past the pad meets the window edge, which cuts it in
+     a straight line and shows a faint rectangle. A future shadow must fit inside the pad, or
+     the pad must grow with it. */
   cursor: grab;
 }
 
