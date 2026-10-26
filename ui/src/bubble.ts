@@ -2,8 +2,8 @@
 // are a port of docs/design/mockup/Bubble.dc.html.
 
 import { ears } from './ears';
-import { OUTLINE_R, hexPath, ringDash, ringGeometry } from './geometry';
-import type { BubbleView } from './model';
+import { OUTLINE_R, type RingGeometry, hexPath, ringDash, ringPair } from './geometry';
+import type { BubbleView, RingView } from './model';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const TRACK = '#252836';
@@ -34,32 +34,45 @@ function earNodes(view: BubbleView): SVGElement[] {
   ]);
 }
 
+// A ring is a track path and a progress path on top of it, as in the mockup.
+function ringNode(g: RingGeometry, ring: RingView, dim: boolean): SVGElement[] {
+  return [
+    svg('path', { d: g.d, fill: 'none', stroke: TRACK, 'stroke-width': g.sw }),
+    svg('path', {
+      d: g.d,
+      fill: 'none',
+      stroke: ring.color,
+      'stroke-width': g.sw,
+      'stroke-opacity': dim ? 0.35 : 1,
+      pathLength: 100,
+      'stroke-dasharray': ringDash(ring.pct),
+      'stroke-linecap': 'butt'
+    })
+  ];
+}
+
 function ringNodes(view: BubbleView): SVGElement[] {
-  return view.rings.flatMap((ring, i) => {
-    const g = ringGeometry(i, view.rings.length);
-    return [
-      svg('path', { d: g.d, fill: 'none', stroke: TRACK, 'stroke-width': g.sw }),
-      svg('path', {
-        d: g.d,
-        fill: 'none',
-        stroke: ring.color,
-        'stroke-width': g.sw,
-        'stroke-opacity': ring.dim ? 0.35 : 1,
-        pathLength: 100,
-        'stroke-dasharray': ringDash(ring.pct),
-        'stroke-linecap': 'butt'
-      })
-    ];
+  return view.pairs.flatMap((pair, i) => {
+    const g = ringPair(i, view.pairs.length);
+    return [...ringNode(g.five, pair.five, pair.dim), ...ringNode(g.seven, pair.seven, pair.dim)];
   });
 }
 
+function setLine(root: ParentNode, selector: string, text: string, size: number): void {
+  const el = part<HTMLElement>(root, selector);
+  el.textContent = text;
+  el.style.fontSize = size + 'px';
+}
+
 export function renderBubble(root: HTMLElement, view: BubbleView): void {
+  const { sizes, sub, offset } = view.fit;
   root.style.opacity = view.dim ? '0.55' : '1';
   root.setAttribute('aria-label', view.label);
   part<SVGElement>(root, '.outline').setAttribute('d', hexPath(OUTLINE_R));
   part<SVGElement>(root, '.ears').replaceChildren(...earNodes(view));
   part<SVGElement>(root, '.ring-list').replaceChildren(...ringNodes(view));
-  part<HTMLElement>(root, '.top').textContent = view.text.top;
-  part<HTMLElement>(root, '.centre').textContent = view.text.centre;
-  part<HTMLElement>(root, '.sub').textContent = view.text.sub;
+  part<HTMLElement>(root, '.text').style.transform = 'translateY(' + offset + 'px)';
+  setLine(root, '.top', view.text.top, sizes.top);
+  setLine(root, '.centre', view.text.centre, sizes.centre);
+  setLine(root, '.sub', sub, sizes.sub);
 }

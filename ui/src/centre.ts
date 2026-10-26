@@ -2,16 +2,36 @@
 // has the auto mode only. Right-click and middle-click come in milestone 2.
 
 import { left, minutesUntil } from './countdown';
-import { type AccountView, fiveHour } from './usage';
+import { type AccountView, FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES, fiveHour, windowAt } from './usage';
 
+/**
+ * The three centre lines. The account line is `name` and `figures` with a space between.
+ * The name fit may cut the name, but it never cuts the figures.
+ */
 export interface CentreText {
   top: string;
   centre: string;
-  sub: string;
+  name: string;
+  figures: string;
 }
 
 /** The text of the States artboard "Stale" cell: no live account to show. */
-export const NO_DATA: CentreText = { top: 'no data', centre: '--', sub: 'offline' };
+export const NO_DATA: CentreText = { top: 'no data', centre: '--', name: 'offline', figures: '' };
+
+/** Joins a name and the figures into the account line. */
+export function accountLine(name: string, figures: string): string {
+  return figures ? name + ' ' + figures : name;
+}
+
+function figure(account: AccountView, minutes: number, now: number): string {
+  const w = windowAt(account, minutes, now);
+  return w ? String(Math.round(w.pct)) : '--';
+}
+
+/** The 5h and the 7d percent as `81/58%`. A missing window shows `--`. */
+export function figures(account: AccountView, now: number): string {
+  return figure(account, FIVE_HOUR_MINUTES, now) + '/' + figure(account, SEVEN_DAY_MINUTES, now) + '%';
+}
 
 // A reset that has passed or that is not known cannot be the next reset, so it sorts last.
 function nextResetKey(account: AccountView, now: number): number {
@@ -29,7 +49,7 @@ export function pickAuto(accounts: readonly AccountView[], now: number): Account
     );
 }
 
-/** The three centre lines: the mode, the countdown, and `<short> · <pct>%`. */
+/** The three centre lines: the mode, the countdown, and `<name> <5h>/<7d>%`. */
 export function centreText(accounts: readonly AccountView[], now: number): CentreText {
   const shown = pickAuto(accounts, now);
   if (!shown) return NO_DATA;
@@ -37,6 +57,7 @@ export function centreText(accounts: readonly AccountView[], now: number): Centr
   return {
     top: 'next 5h',
     centre: five.resetsAt == null ? '--' : left(minutesUntil(five.resetsAt, now)),
-    sub: shown.id + ' · ' + Math.round(five.pct) + '%'
+    name: shown.id,
+    figures: figures(shown, now)
   };
 }

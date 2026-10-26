@@ -49,6 +49,8 @@ body {
   inset: 0;
 }
 
+/* src/fit.ts mirrors the gap and the line-heights below. Change them together. The
+   page sets the font sizes and the vertical move of .text from the fit. */
 .text {
   position: absolute;
   inset: 0;
@@ -59,6 +61,7 @@ body {
   gap: 1px;
   pointer-events: none;
   font-family: 'Fira Code', monospace;
+  white-space: nowrap;
 }
 
 .top {
