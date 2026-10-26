@@ -28,6 +28,9 @@ pub enum Error {
     /// The account has no cache location and no home directory is known.
     #[error("Cannot find the cache directory. Set XDG_CACHE_HOME or HOME.")]
     NoCacheDir,
+    /// No Codex home is known, so the Codex session logs cannot be found.
+    #[error("Cannot find the Codex home. Set CODEX_HOME or HOME.")]
+    NoCodexHome,
     /// No data directory is known, so the watcher logins cannot be found.
     #[error("Cannot find the data directory. Set XDG_DATA_HOME or HOME.")]
     NoDataDir,

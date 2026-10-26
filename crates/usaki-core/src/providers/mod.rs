@@ -2,6 +2,7 @@
 
 pub mod claude_cache;
 pub mod claude_watch;
+pub mod codex_logs;
 
 use std::path::PathBuf;
 
@@ -14,6 +15,8 @@ use crate::model::Snapshot;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProviderKind {
     ClaudeCache,
+    /// The Codex session logs under one Codex home.
+    CodexLogs,
 }
 
 /// A configured account.
