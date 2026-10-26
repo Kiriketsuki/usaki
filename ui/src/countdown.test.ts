@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { left, minutesUntil } from './countdown';
+import { ageText, clockAt, left, minutesUntil, spacedLeft } from './countdown';
 
 describe('left', () => {
   it('says now at or after the reset', () => {
@@ -30,5 +30,28 @@ describe('left', () => {
 describe('minutesUntil', () => {
   it('converts epoch ms to minutes', () => {
     expect(minutesUntil(1_000 + 90 * 60_000, 1_000)).toBe(90);
+  });
+});
+
+describe('card time text', () => {
+  it('spaces the card countdown like the mockup', () => {
+    expect(spacedLeft(0)).toBe('now');
+    expect(spacedLeft(47)).toBe('47m');
+    expect(spacedLeft(133)).toBe('2h 13m');
+    expect(spacedLeft(4 * 1440 + 6 * 60 + 20)).toBe('4d 6h');
+  });
+
+  it('gives the clock time, with the weekday for a 7d reset', () => {
+    const at = Date.UTC(2026, 9, 27, 20, 47);
+    expect(clockAt(at, false, 'UTC')).toBe('20:47');
+    expect(clockAt(at, true, 'UTC')).toBe('Tue 20:47');
+    expect(clockAt(Date.UTC(2026, 9, 27, 0, 5), false, 'UTC')).toBe('00:05');
+  });
+
+  it('gives a coarse age, and nothing under a minute', () => {
+    expect(ageText(30_000)).toBe('');
+    expect(ageText(12 * 60_000)).toBe('12m');
+    expect(ageText(47 * 3_600_000)).toBe('47h');
+    expect(ageText(50 * 3_600_000)).toBe('2d');
   });
 });

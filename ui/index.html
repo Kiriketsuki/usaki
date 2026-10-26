@@ -6,11 +6,39 @@
 <title>usaki</title>
 </head>
 <body>
-<div id="bubble" class="bubble" role="img" aria-label="AI usage">
+<div id="bubble" class="bubble" role="button" tabindex="0" aria-label="AI usage" data-drag data-action="open">
   <svg class="ears" aria-hidden="true"></svg>
   <div class="glass"></div>
   <svg class="cells" aria-hidden="true"></svg>
   <div class="labels" aria-hidden="true"></div>
+</div>
+<div id="card" class="card" tabindex="-1" hidden>
+  <div class="shell">
+    <div class="tri"></div>
+    <div class="head" data-drag>
+      <button type="button" class="mark" data-action="close" aria-label="Collapse to bubble">
+        <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true">
+          <polygon points="14,12 13,0 18,2 18,11" fill="#583090"></polygon>
+          <polygon points="10,13 5,1 10,1 16,11" fill="#1c3d7a"></polygon>
+          <polygon points="7.5,5 9.5,3 13.5,11 11.5,12" fill="#1a8a6a"></polygon>
+          <polygon points="6,15 16,10 24,14 17,19" fill="#1a8a6a"></polygon>
+          <polygon points="6,15 17,19 14,29 4,24" fill="#1c3d7a"></polygon>
+          <polygon points="17,19 24,14 31,22 27,27 14,29" fill="#583090"></polygon>
+          <polygon points="20,15.5 22.5,17.5 20,19.5 17.5,17.5" fill="#FBB13C"></polygon>
+        </svg>
+      </button>
+      <span class="heading">AI usage</span>
+      <span class="grow"></span>
+      <span class="updated"></span>
+      <button type="button" class="icon" data-action="refresh" aria-label="Refresh now">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="19.5,7 16,3 8,3 3,12 8,21 16,21 21,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"></polyline>
+          <polygon points="22,2 22,10 14,8" fill="currentColor"></polygon>
+        </svg>
+      </button>
+    </div>
+    <div class="rows"></div>
+  </div>
 </div>
 <script type="module" src="/src/main.ts"></script>
 </body>
