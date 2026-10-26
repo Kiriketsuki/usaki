@@ -28,6 +28,8 @@ const TRACK_DOT_R = 0.8;
 /** The notch takes the glass tone, so it reads as a cut in the ring. */
 const NOTCH = '#161821';
 const EDGE = 'rgba(255,255,255,0.12)';
+/** Each ear hex keeps the faint edge of the old polygon ears, so a dark hex shows on a dark desktop. */
+const DECOR_EDGE_SW = 0.75;
 const HIGHLIGHT = '#e0e2ea';
 const HIGHLIGHT_SW = 1.5;
 /** A pinned head swaps the bright outline for the amethyst of the inner ear. */
@@ -61,18 +63,20 @@ function part<T extends Element>(root: ParentNode, selector: string): T {
   return el;
 }
 
-function earNodes(view: BubbleView): SVGElement[] {
+// A small decor hex of the ears. Decor has no ring and no text.
+function decorNode(d: { x: number; y: number; r: number; fill: string }): SVGElement {
+  return svg('polygon', {
+    points: hexCorners(d.r, d.x, d.y).map((p) => p.join(',')).join(' '),
+    fill: d.fill,
+    stroke: EDGE,
+    'stroke-width': DECOR_EDGE_SW
+  });
+}
+
+// The ears draw in the unclipped ears layer, outside the cell glass.
+function decorNodes(view: BubbleView): SVGElement[] {
   const top = view.layout.cells[0];
-  return ears(view.ears, top.x, view.layout.earBase).flatMap((e) => [
-    ...e.facets.map((f) => svg('polygon', { points: f.pts, fill: f.fill })),
-    svg('polyline', {
-      points: e.edge,
-      fill: 'none',
-      stroke: EDGE,
-      'stroke-width': 1,
-      'stroke-linejoin': 'miter'
-    })
-  ]);
+  return ears(view.ears, top.x, view.layout.earBase).flat().map(decorNode);
 }
 
 // A ring is a track path and a progress path on top of it, as in the mockup.
@@ -197,7 +201,7 @@ export function renderBubble(root: HTMLElement, view: BubbleView): void {
   }
   const glass = cells.map((c) => hexPath(c.r, c.x, c.y)).join(' ');
   part<HTMLElement>(root, '.glass').style.clipPath = "path('" + glass + "')";
-  part<SVGElement>(root, '.ears').replaceChildren(...earNodes(view));
+  part<SVGElement>(root, '.ears').replaceChildren(...decorNodes(view));
   const pinned = view.mode === 'pinned';
   const head = view.cells[0];
   part<SVGElement>(root, '.cells').replaceChildren(

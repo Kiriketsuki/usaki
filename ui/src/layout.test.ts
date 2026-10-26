@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { EAR_HEIGHT, EAR_POINTS } from './ears';
+import { ears } from './ears';
 import { APOTHEM, CELL_R, HEAD_R } from './geometry';
 import { CELL_GAP, PAD, bodySite, cellGap, layout } from './layout';
 
 const EPS = 1e-6;
 
 describe('layout', () => {
-  for (const count of [1, 2, 3, 4, 5, 8]) {
+  for (const count of [1, 2, 3, 4, 5, 6, 8]) {
     describe(`with ${count} accounts`, () => {
       const lay = layout(count);
       const [head, ...body] = lay.cells;
@@ -43,16 +43,16 @@ describe('layout', () => {
         }
       });
 
-      it('puts the ears on the top edge of the head, inside the window', () => {
-        expect(lay.earBase).toBeCloseTo(head.y - head.r * APOTHEM + 1, 9);
-        for (const [x, y] of EAR_POINTS) {
-          for (const px of [head.x + x, head.x - x]) {
-            expect(px).toBeGreaterThanOrEqual(0);
-            expect(px).toBeLessThanOrEqual(lay.width);
+      it('stands the ears of every fold state on the head, inside the window', () => {
+        expect(lay.earBase).toBeCloseTo(head.y - head.r * APOTHEM, 9);
+        for (const state of ['up', 'left', 'right', 'both'] as const) {
+          for (const c of ears(state, head.x, lay.earBase).flat()) {
+            expect(c.x - c.r).toBeGreaterThanOrEqual(PAD - EPS);
+            expect(c.x + c.r).toBeLessThanOrEqual(lay.width - PAD + EPS);
+            expect(c.y - c.r * APOTHEM).toBeGreaterThanOrEqual(PAD - EPS);
+            expect(c.y).toBeLessThan(lay.earBase);
           }
-          expect(lay.earBase + y).toBeGreaterThanOrEqual(0);
         }
-        expect(lay.earBase - EAR_HEIGHT).toBeGreaterThanOrEqual(PAD);
       });
     });
   }
@@ -91,13 +91,13 @@ describe('layout', () => {
     expect(under.y).toBeGreaterThan(chest.y);
   });
 
-  it('sizes the window for each count from 1 to 5', () => {
-    const sizes = [1, 2, 3, 4, 5].map((n) => [layout(n).width, layout(n).height]);
-    expect(sizes).toEqual([[124, 178], [124, 267], [260, 231], [260, 312], [260, 357]]);
+  it('sizes the window for each count from 1 to 6', () => {
+    const sizes = [1, 2, 3, 4, 5, 6].map((n) => [layout(n).width, layout(n).height]);
+    expect(sizes).toEqual([[134, 204], [134, 293], [260, 257], [260, 338], [260, 383], [260, 428]]);
   });
 
   it('sizes the one cell window to match the Rust start size', () => {
-    expect([layout(1).width, layout(1).height]).toEqual([124, 178]);
+    expect([layout(1).width, layout(1).height]).toEqual([134, 204]);
   });
 
   it('gives zero accounts the head only window', () => {

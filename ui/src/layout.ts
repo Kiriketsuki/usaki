@@ -1,10 +1,11 @@
-// The rabbit layout. The auto account is the head: the biggest cell, with the ears on it.
-// The other accounts are smaller body cells below the head. Every pair of cells that touch
-// has the same gap, and no two cells overlap. The function also gives the window size that
-// holds the cells and the ears.
+// The rabbit layout. Issue #21 draws the bubble as a front-view rabbit. The auto account is the
+// head: the biggest cell, with the ears on it. The other accounts are smaller body cells below
+// the head. Every pair of cells that touch has the same gap, and no two cells overlap. Small
+// decor hexes form the ears. The function also gives the window size that holds the cells
+// and the ears.
 
+import { allEarCells } from './ears';
 import { APOTHEM, CELL_APOTHEM, CELL_GAP, CELL_R, type Cell, HEAD_R, cellGap } from './geometry';
-import { EAR_HEIGHT, EAR_REACH } from './ears';
 
 export { CELL_GAP, type Cell, cellGap };
 
@@ -46,49 +47,45 @@ function headYOverFeet(): number {
 // sit as feet. Three or more fill the body sites in order under a head that rests on the chest.
 function rawCells(count: number): Cell[] {
   const body = Math.max(0, count - 1);
-  if (body === 2) {
-    const feet = [bodySite(1), bodySite(2)];
-    return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, ...feet.map((p) => ({ ...p, r: CELL_R }))];
-  }
+  const bodyCell = (p: Point): Cell => ({ ...p, r: CELL_R });
+  if (body === 2) return [{ x: 0, y: headYOverFeet(), r: HEAD_R }, bodyCell(bodySite(1)), bodyCell(bodySite(2))];
   const head: Cell = { x: 0, y: -(CELL_APOTHEM + CELL_GAP + HEAD_A), r: HEAD_R };
-  return [head, ...Array.from({ length: body }, (_, i) => ({ ...bodySite(i), r: CELL_R }))];
+  return [head, ...Array.from({ length: body }, (_, i) => bodyCell(bodySite(i)))];
 }
 
 /** The clear space around the cells and the ears, in px. */
 export const PAD = 2;
-/** The gap between the window top and the tip of the ears, in px. */
-const EAR_TOP_GAP = 2;
-/** The ear base sits 1 px below the top edge, so no gap shows under the glass. */
-const EAR_SINK = 1;
 
 export interface Layout {
   /** Cell centres and radii in window px. Cell 0 is the head. */
   cells: Cell[];
-  /** The y of the ear base in window px. */
+  /** The y of the head top edge in window px. The ears stand on it. */
   earBase: number;
   width: number;
   height: number;
 }
 
+// The corners of a flat-top hex as two extents.
+function extent(h: Cell): { x0: number; x1: number; y0: number; y1: number } {
+  return { x0: h.x - h.r, x1: h.x + h.r, y0: h.y - h.r * APOTHEM, y1: h.y + h.r * APOTHEM };
+}
+
 /**
  * Returns the layout of `count` accounts. Zero accounts still get the head cell, for the no
- * data text. The window holds the cells, the ears above the head, and PAD on each side. The
- * layout depends on the count only, so a new head does not change the window size.
+ * data text. The window holds the cells, the ears of every fold state and PAD on each side. The layout depends on the count only, so a new head or a fold does not change
+ * the window size.
  */
 export function layout(count: number): Layout {
   const raw = rawCells(Math.max(1, count));
   const head = raw[0];
-  const xs = raw.flatMap((c) => [c.x - c.r, c.x + c.r]);
-  const ys = raw.flatMap((c) => [c.y - c.r * APOTHEM, c.y + c.r * APOTHEM]);
-  const left = Math.min(...xs, head.x - EAR_REACH);
-  const right = Math.max(...xs, head.x + EAR_REACH);
-  const earTop = head.y - HEAD_A - EAR_HEIGHT - EAR_TOP_GAP;
-  const dx = PAD - left;
-  const dy = PAD - Math.min(earTop, ...ys);
+  const top = head.y - HEAD_A;
+  const all = [...raw, ...allEarCells(head.x, top)].map(extent);
+  const dx = PAD - Math.min(...all.map((e) => e.x0));
+  const dy = PAD - Math.min(...all.map((e) => e.y0));
   return {
     cells: raw.map((c) => ({ x: c.x + dx, y: c.y + dy, r: c.r })),
-    earBase: head.y - HEAD_A + EAR_SINK + dy,
-    width: Math.ceil(right + dx + PAD),
-    height: Math.ceil(Math.max(...ys) + dy + PAD)
+    earBase: top + dy,
+    width: Math.ceil(Math.max(...all.map((e) => e.x1)) + dx + PAD),
+    height: Math.ceil(Math.max(...all.map((e) => e.y1)) + dy + PAD)
   };
 }
