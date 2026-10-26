@@ -14,11 +14,15 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
 ## Settled decisions
 
 - **Framework:** Tauri v2 on both OSes, with one codebase. The user rejected AGS. The mockup HTML and SVG port directly.
-- **Shape:** flat-top hexagons only, laid out as a sitting rabbit (issue #11). Each account is one hex cell.
+- **Shape:** flat-top hexagons only, laid out as a sitting rabbit seen from the front (issues #11 and #21). Each account is one hex cell.
   The auto account is the head: the biggest cell, 120 px corner to corner, with the ears on it. The other accounts are body cells,
   100 px corner to corner, below the head. When the auto account changes, the new auto account becomes the head.
   Two accounts give a head on a chest. Three give a head between two feet. Four give a head on a chest with two haunches.
-  Five add a cell under the chest. More cells extend the body as three columns. Cells that touch keep a 3 px gap.
+  Five add a cell under the chest. Six put the head between two shoulders, with a cell under the head and two haunches below.
+  Six accounts then stay shorter than five. More cells extend that body as rows of three. Cells that touch keep a 3 px gap.
+  Small decor hexes with no ring and no text complete the rabbit: the ears and the foot pads (issue #21). A head alone gets two
+  front paws under it. A body gets a hind foot pad beside the bottom of each outermost cell. A head between two feet also gets
+  two front paws under it. A pad keeps at least 3 px from every cell, so it never covers a ring.
   Each cell has two rings: the 7d ring outside and the 5h ring inside it. Chrysaki bans rounded corners. The user dropped the circle option.
 - **Mouse:** left-drag moves the widget. A left-click expands the bubble in place into the card, and a click on the card's header hex collapses it.
   A right-click shows the next account in the centre (one step, wraps, never auto). A middle-click returns the centre to auto (earliest 5h reset).
@@ -53,9 +57,13 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
 - **Theme:** Chrysaki tokens, Inter and Fira Code, glass bubble, chamfered card, no border-radius.
 - **Rabbit identity:** the name comes from usagi, Japanese for rabbit. The user wants a rabbit feel across the whole app (2026-10-23):
   - The bubble has two long, angular, faceted ears on the top cell. They tilt out a little, with a flat-cut tip and a light amethyst inner panel.
+    Since issue #21 the faceted polygons are the source shape only. Small flat-top hexes fill each ear, with a 5 px corner
+    radius and a 1.2 px gap. Each hex takes the tone of the facet that holds its centre. Every ear hex keeps a faint edge, so a dark hex
+    still shows on a dark desktop. The ears are about 100 px tall and lean out from each other.
     Both ears stand up normally. The right ear folds when a live 5h window is at 75% or more. The left ear folds when a live 7d window is at 75% or more.
     Both ears fold when a live account hits 100% in either window, or when no live account remains.
-    A fold bends the top third of the ear over at a kink, and the hanging flap is the darkest facet.
+    A fold bends the top third of the ear over at a kink, and the hanging flap is the darkest facet. The top row of the
+    standing part of a folded ear also takes the darkest tone, so the crease reads at 1x.
   - A faceted rabbit-head mark: tri-primary facets and a Blonde eye stud. It is the tray icon, the card header icon (in place of the small hex) and the app icon.
   - The rabbit in the moon (tsuki no usagi): each 7d reset shows a small moon-phase glyph that fills as the reset gets closer.
   - A 220 ms hop when a window resets. This is a deliberate exception to the Chrysaki no-bounce rule. Plain rabbit wording ("burrowed", "hop") was not chosen.
@@ -89,6 +97,8 @@ src-tauri/src/
 ui/ (Vite + vanilla TS, no framework, to keep the webview light)
   bubble.ts          hex cell SVG: port hexPath() and the ring maths from Bubble.dc.html, one cell per account
   layout.ts          honeycomb cell layout and the window size for the cell count
+  ears.ts            the ear hexes for each fold state, filled from the faceted ear polygons
+  pads.ts            the foot pad hexes at the base of the rabbit
   card.ts            expanded card: port of Card.dc.html
   centre.ts          pure centre-selection logic: auto, cycle, middle-click reset
   interactions.ts    pointer threshold of 4 px → getCurrentWindow().startDragging(); contextmenu → cycle; auxclick button 1 → auto
@@ -96,8 +106,10 @@ ui/ (Vite + vanilla TS, no framework, to keep the webview light)
 ```
 
 Window flags: `decorations: false`, `transparent: true`, `alwaysOnTop: true`, `skipTaskbar: true`,
-`resizable: false`. The bubble window size follows the cell count, from `layout()` in `ui/src/layout.ts`:
-124×178 for one account, 124×267 for two, 260×231 for three, 260×312 for four and 260×357 for five.
+`resizable: false`. The bubble window size follows the cell count, from `layout()` in `ui/src/layout.ts`.
+It holds the cells, the ears of every fold state and the foot pads, with a 2 px pad. A fold never changes it.
+The sizes are 134×233 for one account, 144×293 for two and 299×257 for three.
+Four accounts take 299×338, five take 299×383 and six take 299×347.
 The card is 420×470. Every resize keeps the top-left corner in place. On Hyprland the app moves the window back by PID after a resize, because Hyprland keeps the centre.
 
 ## Changes outside the new repo
