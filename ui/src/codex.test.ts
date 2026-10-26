@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { CARD_ROW, blockHeight, cardView, creditsText } from './card';
 import { AUTO, cellText, keepPin, nextPin, pickAuto, pickHead } from './centre';
-import { markPoints } from './marks';
+import { PROVIDER_COLOUR, markPoints } from './marks';
 import { bubbleView } from './model';
 import { MIN, NOW, account, codexAccount } from './test-fixtures';
 import { type AccountView, weekOnly } from './usage';
@@ -97,8 +97,8 @@ describe('card of a 7d-only account', () => {
   it('has a teal dot, the 7d row, the credits row and no 5h row', () => {
     const view = cardView(update([account('acc1', 10, 20), codexAccount('codex', 37, WEEK)]), NOW, AUTO);
     const [claude, codex] = view.rows;
-    expect(claude).toMatchObject({ name: 'acc1', dot: '#7a4fb8', credits: null, height: CARD_ROW });
-    expect(codex).toMatchObject({ id: 'codex:codex', name: 'codex', dot: '#20969c', credits: '123.45' });
+    expect(claude).toMatchObject({ name: 'acc1', dot: PROVIDER_COLOUR.claude, credits: null, height: CARD_ROW });
+    expect(codex).toMatchObject({ id: 'codex:codex', name: 'codex', dot: PROVIDER_COLOUR.codex, credits: '123.45' });
     expect(codex.windows.map((w) => w.label)).toEqual(['7d']);
     expect(codex.height).toBe(blockHeight(2));
   });

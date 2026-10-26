@@ -59,7 +59,7 @@ export interface AccountRow {
   id: string;
   /** The account name that the title shows. */
   name: string;
-  /** The colour of the hex dot: amethyst for Claude, teal for Codex. */
+  /** The colour of the hex dot: the provider accent from PROVIDER_COLOUR. */
   dot: string;
   /** `next 5h` or `next 7d` on the auto head, `pinned` on a pinned head, else null. */
   tag: string | null;

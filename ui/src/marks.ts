@@ -4,9 +4,13 @@
 
 import type { ProviderName } from './usage';
 
-/** The colour of each provider. The rings keep the usage tones. */
+/**
+ * The accent of each provider: the cell mark and the card dot. Claude uses its own brand
+ * terracotta and Codex a teal. The rings keep the usage tones, and the mark shape carries
+ * the provider, so an accent close to a usage tone stays readable.
+ */
 export const PROVIDER_COLOUR: Record<ProviderName, string> = {
-  claude: '#7a4fb8',
+  claude: '#D97757',
   codex: '#20969c'
 };
 

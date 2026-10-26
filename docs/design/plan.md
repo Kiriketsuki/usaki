@@ -27,8 +27,8 @@ Main (prototype), Bubble, Card, States and Settings. The mockup is the visual sp
   (`33m`, `1h12m` or `2d04h`). A window with no reset time, such as an unused 5h window, shows 0% and `ready`.
   A name longer than 10 characters ends in an ellipsis. The provider mark takes the space of two characters.
   The head, the auto account (earliest 5h reset) or the pinned account, gets a bright outline. A stale cell dims.
-- **Provider marks (issue #19):** each cell shows a small filled polygon before the name. Claude has an amethyst
-  `#7a4fb8` starburst and Codex a teal `#20969c` chevron. The shape names the provider without colour. The rings keep the usage tones.
+- **Provider marks (issue #19):** each cell shows a small filled polygon before the name. Claude has a starburst in its
+  brand terracotta `#D97757` and Codex a teal `#20969c` chevron. `PROVIDER_COLOUR` in `ui/src/marks.ts` holds both accents. The shape names the provider without colour. The rings keep the usage tones.
   The account id is `<provider>:<name>`, so a Claude account and a Codex account with the same name never merge. Pins use this id.
   The body lists the Claude accounts first, then the Codex accounts, each by name.
 - **7d-only accounts (issue #19):** Codex on the Pro plan reports only the 7d window. Its cell draws the 5h track as a dotted
