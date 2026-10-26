@@ -16,6 +16,9 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v6
               with:
+                  # BUMP_TOKEN is a fine-grained token of the repo owner. The owner can bypass
+                  # the pull request rule on main and release, and GITHUB_TOKEN cannot.
+                  token: ${{ secrets.BUMP_TOKEN || github.token }}
                   ref: release
                   fetch-depth: 0
 
