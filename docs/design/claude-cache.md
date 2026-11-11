@@ -75,3 +75,8 @@ When `limits` is an array, the parser uses it and ignores `five_hour` and `seven
 - A file that is not valid JSON gives an error that names the file and the parse problem.
 - A field with the wrong type gives an error that names the file and the field.
 - Any other read failure (for example, no permission) gives an I/O error.
+
+## Hub pools
+
+The hub statusline also writes a pool status file, `<pool>.status.json`. usaKi reads it in hub
+mode. See [claude-hub.md](claude-hub.md).

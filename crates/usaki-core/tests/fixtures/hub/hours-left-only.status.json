@@ -1,0 +1,8 @@
+{
+  "updated_epoch": 1800000000,
+  "seats": [
+    { "seat": "acc1", "state": "warm", "week_used": 0.25, "week_hours_left": 10.0 },
+    { "seat": "acc2", "state": "teleporting", "week_used": null },
+    { "seat": "acc3" }
+  ]
+}

@@ -235,6 +235,43 @@ body {
   color: #a0a4b8;
 }
 
+.card .pnote {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  color: #a0a4b8;
+}
+
+.card .pnote.warn {
+  color: #FBB13C;
+}
+
+.card .seat {
+  height: 16px;
+  display: grid;
+  grid-template-columns: 10px 44px 76px 36px 1fr 1fr 44px;
+  gap: 6px;
+  align-items: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.card .seat.dim {
+  opacity: 0.45;
+}
+
+.card .seat .next {
+  color: #FBB13C;
+}
+
+.card .seat .live {
+  text-align: right;
+  color: #a0a4b8;
+}
+
 .card .credits {
   height: 16px;
   display: flex;

@@ -15,5 +15,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 tempfile = "3"
+toml = "1"
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 usaki-core = { path = "crates/usaki-core" }

@@ -4,6 +4,8 @@
 
 mod accounts;
 mod codex;
+mod hub;
+mod hub_view;
 #[cfg(target_os = "linux")]
 mod hyprland;
 mod placement;
@@ -18,6 +20,7 @@ mod window;
 use tauri::{Manager, State, WindowEvent};
 
 use crate::codex::CodexSources;
+use crate::hub::HubState;
 use crate::placement::{Anchor, Home, Tracker};
 use crate::poller::CacheDir;
 use crate::view::UsageUpdate;
@@ -34,11 +37,13 @@ async fn get_usage(
     cache_dir: State<'_, CacheDir>,
     watched: State<'_, WatchRecords>,
     codex: State<'_, CodexSources>,
+    hub: State<'_, HubState>,
 ) -> Result<UsageUpdate, String> {
     poller::poll_in_background(
         cache_dir.inner().clone(),
         watched.inner().clone(),
         codex.inner().clone(),
+        hub.inner().clone(),
     )
     .await
 }
@@ -122,16 +127,19 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
     let watched = WatchRecords::default();
     let codex = CodexSources::from_env();
+    let hub = HubState::from_env();
     app.manage(cache_dir.clone());
     app.manage(watched.clone());
     app.manage(codex.clone());
+    app.manage(hub.clone());
     watch::spawn(
         app.handle().clone(),
         cache_dir.clone(),
         watched.clone(),
         codex.clone(),
+        hub.clone(),
     );
-    poller::spawn(app.handle().clone(), cache_dir, watched, codex);
+    poller::spawn(app.handle().clone(), cache_dir, watched, codex, hub);
     Ok(())
 }
 

@@ -2,8 +2,9 @@
 // docs/design/mockup/Card.dc.html. It holds no DOM code.
 
 import { type Head, type Pin, pickHead } from './centre';
-import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
+import { BLONDE, DEFAULT_THRESHOLDS, EMERALD, RUBY, type Thresholds, tone } from './colour';
 import { ageText, clockAt, minutesUntil, spacedLeft } from './countdown';
+import { poolAccount, poolForId, viewAccounts } from './hub';
 import { PROVIDER_COLOUR } from './marks';
 import { type MoonView, NEW_MOON, moonView } from './moon';
 import {
@@ -11,8 +12,11 @@ import {
   type Credits,
   FIVE_HOUR_MINUTES,
   SEVEN_DAY_MINUTES,
+  type PoolView,
   type ProviderName,
+  type SeatView,
   type UsageUpdate,
+  type WindowView,
   noData,
   weekOnly,
   windowAt
@@ -77,6 +81,40 @@ export interface AccountRow {
   credits: string | null;
   /** The block height in px. */
   height: number;
+  /** The pool block of a hub pool cell. It replaces the account lines. Absent for an account. */
+  pool?: PoolBlock;
+}
+
+/** One seat line of a pool block. */
+export interface SeatRow {
+  name: string;
+  /** True for the next seat of the pool. */
+  next: boolean;
+  state: string;
+  stateColour: string;
+  /** `p100`, or `p--` for no priority. */
+  priority: string;
+  five: { pct: string; left: string };
+  seven: { pct: string; left: string };
+  /** `3 live`, or null when the count is unknown. */
+  live: string | null;
+  /** True for an unavailable seat. The line then dims. */
+  dim: boolean;
+}
+
+/** The pool block of a card row. The 5h and 7d rows reuse WindowRow. */
+export interface PoolBlock {
+  /** `next acc1`, or null when the pool has no next seat. */
+  next: string | null;
+  /** The 5h row and the 7d row of the pool total. */
+  windows: WindowRow[];
+  /** `runs out in 1d 4h, 0.6%/h, last 1h`, the pool error, or null. */
+  forecast: string | null;
+  /** `refill in 2d 3h`, or null. */
+  refill: string | null;
+  /** `extra usage: acc3` and `spend guard: acc2`, one line each when its list is not empty. */
+  warnings: string[];
+  seats: SeatRow[];
 }
 
 export interface CardView {
@@ -134,6 +172,78 @@ function headTag(head: Head): string | null {
   return null;
 }
 
+const STATE_COLOUR: Record<string, string> = {
+  open: EMERALD,
+  warm: BLONDE,
+  five_hour_full: RUBY,
+  week_full: RUBY
+};
+const STATE_UNKNOWN = '#a0a4b8';
+
+function seatWindow(w: WindowView | null, now: number): { pct: string; left: string } {
+  if (!w) return { pct: '--', left: '--' };
+  const ready = w.resetsAt == null || w.resetsAt <= now;
+  return {
+    pct: Math.round(ready ? 0 : w.usedPct) + '%',
+    left: ready || w.resetsAt == null ? 'ready' : spacedLeft(minutesUntil(w.resetsAt, now))
+  };
+}
+
+function seatRow(s: SeatView, now: number): SeatRow {
+  return {
+    name: s.name,
+    next: s.next,
+    state: s.state.replace(/_/g, ' '),
+    stateColour: STATE_COLOUR[s.state] ?? STATE_UNKNOWN,
+    priority: 'p' + (s.priority ?? '--'),
+    five: seatWindow(s.fiveHour, now),
+    seven: seatWindow(s.sevenDay, now),
+    live: s.liveSessions == null ? null : s.liveSessions + ' live',
+    dim: s.unavailable
+  };
+}
+
+/** Returns the forecast line of a pool, the pool error when it has no forecast, or null. */
+export function forecastText(pool: PoolView, now: number): string | null {
+  const f = pool.forecast;
+  if (!f) return pool.error;
+  const when =
+    f.runsOutAt == null
+      ? 'lasts past 7d'
+      : f.runsOutAt <= now
+        ? 'runs out now'
+        : 'runs out in ' + spacedLeft(minutesUntil(f.runsOutAt, now));
+  return [when, f.ratePctPerHour.toFixed(1) + '%/h', f.basis === 'recent' ? 'last 1h' : 'week avg'].join(', ');
+}
+
+/** Returns the pool block of `pool` at `now`. */
+export function poolBlock(
+  pool: PoolView,
+  now: number,
+  thresholds: Thresholds = DEFAULT_THRESHOLDS,
+  timeZone?: string
+): PoolBlock {
+  const cell = poolAccount(pool, now);
+  const refillAt = pool.total.nextRefillAt;
+  const warnings = [
+    pool.extraUsageOpen.length ? 'extra usage: ' + pool.extraUsageOpen.join(', ') : null,
+    pool.spendGuardBlocked.length ? 'spend guard: ' + pool.spendGuardBlocked.join(', ') : null
+  ].filter((w): w is string => w != null);
+  return {
+    next: pool.nextSeat ? 'next ' + pool.nextSeat : null,
+    windows: [FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES].map((m) => windowRow(cell, m, now, thresholds, timeZone)),
+    forecast: forecastText(pool, now),
+    refill: refillAt != null && refillAt > now ? 'refill in ' + spacedLeft(minutesUntil(refillAt, now)) : null,
+    warnings,
+    seats: pool.seats.map((s) => seatRow(s, now))
+  };
+}
+
+/** Returns the line count under the title of a pool block. */
+export function poolLines(b: PoolBlock): number {
+  return b.windows.length + (b.forecast ? 1 : 0) + (b.refill ? 1 : 0) + b.warnings.length + b.seats.length;
+}
+
 const BALANCE_FORMAT = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
@@ -169,9 +279,26 @@ export function cardView(
   thresholds: Thresholds = DEFAULT_THRESHOLDS,
   timeZone?: string
 ): CardView {
-  const accounts = update?.accounts ?? [];
+  const accounts = viewAccounts(update);
   const head = pickHead(accounts, pin, now);
   const rows = accounts.map((a): AccountRow => {
+    const pool = poolForId(update, a.id);
+    if (pool) {
+      const block = poolBlock(pool, now, thresholds, timeZone);
+      return {
+        id: a.id,
+        name: a.name,
+        provider: a.provider,
+        colour: PROVIDER_COLOUR[a.provider],
+        tag: block.next,
+        stale: staleText(a, now),
+        windows: block.windows,
+        noData: false,
+        credits: null,
+        height: blockHeight(poolLines(block)),
+        pool: block
+      };
+    }
     const empty = noData(a);
     const minutes = empty ? [] : weekOnly(a) ? [SEVEN_DAY_MINUTES] : [FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES];
     const windows = minutes.map((m) => windowRow(a, m, now, thresholds, timeZone));

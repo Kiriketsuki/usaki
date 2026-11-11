@@ -2,6 +2,7 @@
 //!
 //! Times are epoch milliseconds, so the page can use them with `Date` directly.
 
+use crate::hub_view::{PoolView, UsakiMode};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use usaki_core::model::{FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES};
@@ -85,6 +86,9 @@ pub struct UsageUpdate {
     pub accounts: Vec<AccountView>,
     /// A problem that stopped the discovery of accounts.
     pub error: Option<String>,
+    pub mode: UsakiMode,
+    /// The hub pools. Empty in normal mode.
+    pub pools: Vec<PoolView>,
 }
 
 fn minutes(kind: WindowKind) -> u32 {

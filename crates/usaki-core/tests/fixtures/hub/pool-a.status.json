@@ -1,0 +1,23 @@
+{
+  "pool": "pool-a",
+  "updated_epoch": 1800000000,
+  "next_seat": "acc1",
+  "extra_usage_open": ["acc3"],
+  "spend_guard_blocked": [],
+  "fetched_at": 1800000005,
+  "unknown_key": true,
+  "seats": [
+    {
+      "seat": "acc1", "priority": 100, "state": "open",
+      "week_used": 0.51, "week_hours_left": 116.3, "week_reset_epoch": 1800418680,
+      "five_hour_used": 0.06, "five_hour_hours_left": 2.5, "five_hour_reset_epoch": 1800009000,
+      "unavailable": false
+    },
+    {
+      "seat": "acc2", "priority": 90, "state": "five_hour_full",
+      "week_used": 0.8, "week_hours_left": 50.0,
+      "five_hour_used": 1.0, "five_hour_hours_left": 1.0,
+      "unavailable": false
+    }
+  ]
+}

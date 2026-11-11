@@ -1,5 +1,6 @@
 // Turns the backend data into what the bubble draws. It holds no DOM code.
 
+import { poolForId, viewAccounts } from './hub';
 import { AUTO, type CellText, type HeadMode, NO_DATA, type Pin, READY, type WindowText, cellText, pickHead } from './centre';
 import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
 import { type EarState, earState } from './ears';
@@ -71,10 +72,14 @@ export const CONTROLS_HINT =
 
 // The label carries the full account name, so a screen reader hears it even when the
 // fit cuts it on screen.
-function ariaLabel(head: AccountView | null, mode: HeadMode, now: number): string {
+function ariaLabel(update: UsageUpdate | null, head: AccountView | null, mode: HeadMode, now: number): string {
   if (!head || mode === 'none') return 'AI usage. No fresh data.' + CONTROLS_HINT;
   const t = cellText(head, now);
-  const who = (mode === 'pinned' ? 'Pinned: ' : 'Next reset: ') + PROVIDER_LABEL[head.provider] + ' ' + t.name;
+  const pool = poolForId(update, head.id);
+  const name = pool
+    ? 'Pool ' + pool.name + (pool.nextSeat ? ', next seat ' + pool.nextSeat : '')
+    : PROVIDER_LABEL[head.provider] + ' ' + t.name;
+  const who = (mode === 'pinned' ? 'Pinned: ' : 'Next reset: ') + name;
   if (noData(head)) return 'AI usage. ' + who + '. No data.' + CONTROLS_HINT;
   const five = weekOnly(head) ? 'none' : spoken(t.five);
   return 'AI usage. ' + who + '. 5 hour window: ' + five + '. 7 day window: ' + spoken(t.seven) + '.' + CONTROLS_HINT;
@@ -103,7 +108,7 @@ export function bubbleView(
   pin: Pin = AUTO,
   thresholds: Thresholds = DEFAULT_THRESHOLDS
 ): BubbleView {
-  const accounts = update?.accounts ?? [];
+  const accounts = viewAccounts(update);
   const lay = layout(accounts.length);
   const { account: shown, mode } = pickHead(accounts, pin, now);
   const cells =
@@ -135,6 +140,6 @@ export function bubbleView(
     ears: earState(live, thresholds.crit),
     mode,
     dim: live.length === 0,
-    label: ariaLabel(shown, mode, now)
+    label: ariaLabel(update, shown, mode, now)
   };
 }
