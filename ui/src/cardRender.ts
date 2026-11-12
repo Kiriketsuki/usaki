@@ -2,7 +2,7 @@
 // docs/design/mockup/Card.dc.html.
 
 import { NO_DATA_TEXT } from './centre';
-import { CARD_ROW, type AccountRow, type CardView, type WindowRow } from './card';
+import { CARD_ROW, type AccountRow, type CardView, type PoolBlock, type SeatRow, type WindowRow } from './card';
 import { markPoints } from './marks';
 import { MOON_DISC } from './moon';
 
@@ -106,6 +106,35 @@ function accountNode(a: AccountRow): HTMLElement {
   return block;
 }
 
+const SEAT_STATE_CLASS = 'state';
+
+function seatNode(s: SeatRow): HTMLElement {
+  const row = html('div', 'seat' + (s.dim ? ' dim' : ''));
+  const state = html('span', SEAT_STATE_CLASS, s.state);
+  state.style.color = s.stateColour;
+  row.append(
+    html('span', 'next', s.next ? '>' : ''),
+    html('span', 'sname', s.name),
+    state,
+    html('span', 'prio', s.priority),
+    html('span', 'sw', '5h ' + s.five.pct + ' ' + s.five.left),
+    html('span', 'sw', '7d ' + s.seven.pct + ' ' + s.seven.left),
+    html('span', 'live', s.live ?? '')
+  );
+  return row;
+}
+
+function poolNode(a: AccountRow, p: PoolBlock): HTMLElement {
+  const block = accountNode(a);
+  const wins = part<HTMLElement>(block, '.wins');
+  const note = (cls: string, text: string) => html('div', 'pnote ' + cls, text);
+  if (p.forecast) wins.append(note('forecast', p.forecast));
+  if (p.refill) wins.append(note('refill', p.refill));
+  p.warnings.forEach((w) => wins.append(note('warn', w)));
+  p.seats.forEach((s) => wins.append(seatNode(s)));
+  return block;
+}
+
 function emptyNode(): HTMLElement {
   const block = html('div', 'acct empty', 'No account data yet.');
   block.style.height = CARD_ROW + 'px';
@@ -116,5 +145,5 @@ export function renderCard(root: HTMLElement, view: CardView): void {
   root.style.width = view.width + 'px';
   root.style.height = view.height + 'px';
   part<HTMLElement>(root, '.updated').textContent = view.updated;
-  part<HTMLElement>(root, '.rows').replaceChildren(...(view.rows.length ? view.rows.map(accountNode) : [emptyNode()]));
+  part<HTMLElement>(root, '.rows').replaceChildren(...(view.rows.length ? view.rows.map((r) => (r.pool ? poolNode(r, r.pool) : accountNode(r))) : [emptyNode()]));
 }

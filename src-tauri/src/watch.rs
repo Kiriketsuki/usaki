@@ -14,6 +14,7 @@ use usaki_core::providers::claude_watch::{
 use usaki_core::{Account, ClaudeCacheProvider, Clock, Provider, ProviderKind, SystemClock};
 
 use crate::codex::CodexSources;
+use crate::hub::HubState;
 use crate::poller::{self, CacheDir, UPDATE_EVENT};
 
 /// The time between two watcher ticks. The call schedule of each account is longer.
@@ -49,7 +50,13 @@ pub fn cache_is_fresh<C: Clock>(cache_dir: &CacheDir, id: &str, clock: C) -> boo
 }
 
 /// Starts the watcher thread. Without a data directory the app runs without watchers.
-pub fn spawn(app: AppHandle, cache_dir: CacheDir, records: WatchRecords, codex: CodexSources) {
+pub fn spawn(
+    app: AppHandle,
+    cache_dir: CacheDir,
+    records: WatchRecords,
+    codex: CodexSources,
+    hub: HubState,
+) {
     let root = match watch_root_from_env() {
         Ok(root) => root,
         Err(e) => {
@@ -68,7 +75,7 @@ pub fn spawn(app: AppHandle, cache_dir: CacheDir, records: WatchRecords, codex: 
             loop {
                 let fresh = |id: &str| cache_is_fresh(&cache_dir, id, SystemClock);
                 match watcher.tick(fresh) {
-                    Ok(latest) => publish(&app, &cache_dir, &records, &codex, latest),
+                    Ok(latest) => publish(&app, &cache_dir, &records, &codex, &hub, latest),
                     Err(e) => eprintln!(
                         "usaki: Cannot read the watch folder {}. {e}",
                         watcher.root().display()
@@ -88,6 +95,7 @@ fn publish(
     cache_dir: &CacheDir,
     records: &WatchRecords,
     codex: &CodexSources,
+    hub: &HubState,
     latest: Vec<WatchRecord>,
 ) {
     let before = records.get();
@@ -99,7 +107,7 @@ fn publish(
         eprintln!("usaki: watch {}: {}", rec.account_id, describe(rec, now));
     }
     records.set(latest);
-    let update = poller::poll(cache_dir, &records.get(), codex, SystemClock);
+    let update = poller::poll_with(cache_dir, &records.get(), codex, hub, SystemClock);
     if let Err(e) = app.emit(UPDATE_EVENT, &update) {
         eprintln!("usaki: Cannot send the usage update. {e}");
     }

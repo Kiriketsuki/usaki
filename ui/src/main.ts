@@ -14,6 +14,7 @@ import { renderCard } from './cardRender';
 import { AUTO, type Pin, keepPin, nextPin } from './centre';
 import { parseScript } from './debug';
 import { attachPointer } from './drag';
+import { viewAccounts } from './hub';
 import { bubbleView } from './model';
 import type { UsageUpdate } from './usage';
 
@@ -69,7 +70,7 @@ function accept(update: UsageUpdate): void {
     .filter((a) => a.error)
     .forEach((a) => console.error('usaki: ' + a.error));
   latest = update;
-  pin = keepPin(update.accounts, pin);
+  pin = keepPin(viewAccounts(update), pin);
   draw();
 }
 
@@ -122,7 +123,7 @@ document.addEventListener('click', (e) => {
 // Right-click pins the next account in the head.
 function pinNext(): void {
   if (open || !latest) return;
-  pin = nextPin(latest.accounts, pin, Date.now());
+  pin = nextPin(viewAccounts(latest), pin, Date.now());
   draw();
 }
 

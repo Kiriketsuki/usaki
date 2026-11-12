@@ -18,6 +18,7 @@ use usaki_core::{ClaudeCacheProvider, Clock, Provider, Snapshot, SystemClock};
 
 use crate::accounts;
 use crate::codex::CodexSources;
+use crate::hub::HubState;
 use crate::view::{AccountView, ProviderName, UsageUpdate};
 use crate::watch::WatchRecords;
 
@@ -40,14 +41,30 @@ impl CacheDir {
     }
 }
 
-/// Reads every account once and merges the cache files with the watcher records.
+/// Reads every account once in normal mode. Tests use it. The app calls `poll_with`.
+#[cfg(test)]
 pub fn poll<C: Clock + Clone>(
     cache_dir: &CacheDir,
     watched: &[WatchRecord],
     codex: &CodexSources,
     clock: C,
 ) -> UsageUpdate {
+    poll_with(cache_dir, watched, codex, &HubState::normal(), clock)
+}
+
+/// Reads every account once and merges the cache files with the watcher records.
+///
+/// In hub mode the update also carries the pools. A direct Claude account whose name is a seat
+/// of a pool with data leaves the account list, because the pool shows it.
+pub fn poll_with<C: Clock + Clone>(
+    cache_dir: &CacheDir,
+    watched: &[WatchRecord],
+    codex: &CodexSources,
+    hub: &HubState,
+    clock: C,
+) -> UsageUpdate {
     let now = clock.now();
+    let hubbed = hub.read(now.timestamp());
     let (mut cached, error) = read_cache(cache_dir, clock.clone());
     let ids: BTreeSet<String> = cached
         .keys()
@@ -61,11 +78,14 @@ pub fn poll<C: Clock + Clone>(
             pick(id, cached.remove(id), record, now)
         })
         .chain(codex.read(clock, now))
+        .filter(|a| !(a.provider == ProviderName::Claude && hubbed.seats.contains(&a.name)))
         .collect();
     UsageUpdate {
         polled_at: now.timestamp_millis(),
         accounts,
         error,
+        mode: hubbed.mode,
+        pools: hubbed.pools,
     }
 }
 
@@ -122,22 +142,36 @@ pub async fn poll_in_background(
     cache_dir: CacheDir,
     watched: WatchRecords,
     codex: CodexSources,
+    hub: HubState,
 ) -> Result<UsageUpdate, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        poll(&cache_dir, &watched.get(), &codex, SystemClock)
+        poll_with(&cache_dir, &watched.get(), &codex, &hub, SystemClock)
     })
     .await
     .map_err(|e| format!("The poll task failed. {e}"))
 }
 
 /// Starts the poll loop. The first tick runs at once.
-pub fn spawn(app: AppHandle, cache_dir: CacheDir, watched: WatchRecords, codex: CodexSources) {
+pub fn spawn(
+    app: AppHandle,
+    cache_dir: CacheDir,
+    watched: WatchRecords,
+    codex: CodexSources,
+    hub: HubState,
+) {
     tauri::async_runtime::spawn(async move {
         let mut tick = tokio::time::interval(POLL_INTERVAL);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             tick.tick().await;
-            match poll_in_background(cache_dir.clone(), watched.clone(), codex.clone()).await {
+            match poll_in_background(
+                cache_dir.clone(),
+                watched.clone(),
+                codex.clone(),
+                hub.clone(),
+            )
+            .await
+            {
                 Ok(update) => {
                     if let Err(e) = app.emit(UPDATE_EVENT, &update) {
                         eprintln!("usaki: Cannot send the usage update. {e}");
@@ -407,5 +441,131 @@ mod tests {
         let update = poll(&CacheDir(Err("no dir".into())), &[], &none(), clock());
         assert!(update.accounts.is_empty());
         assert_eq!(update.error.as_deref(), Some("no dir"));
+    }
+
+    // ---- hub mode ----
+
+    use crate::hub::{HubState, ModeSetting};
+    use crate::hub_view::UsakiMode;
+    use usaki_core::providers::claude_hub::{HubDirs, StatusClient};
+    use usaki_core::providers::claude_watch::HttpReply;
+
+    struct Offline;
+
+    impl StatusClient for Offline {
+        fn get_status(&self, _url: &str, _key: &str) -> Result<HttpReply, String> {
+            Err("offline".to_owned())
+        }
+    }
+
+    struct HubEnv {
+        _conf: tempfile::TempDir,
+        _cache: tempfile::TempDir,
+        dirs: HubDirs,
+    }
+
+    fn hub_env() -> HubEnv {
+        let conf = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+        let dirs = HubDirs::new(conf.path(), cache.path());
+        HubEnv {
+            _conf: conf,
+            _cache: cache,
+            dirs,
+        }
+    }
+
+    fn pool_file(env: &HubEnv, pool: &str) {
+        let body = format!(
+            r#"{{"updated_epoch":{},"next_seat":"acc1","seats":[
+                {{"seat":"acc1","state":"open","week_used":0.5,"week_reset_epoch":1800300000}},
+                {{"seat":"acc2","state":"warm","week_used":0.2,"week_reset_epoch":1800300000}}]}}"#,
+            NOW - 30
+        );
+        std::fs::write(env.dirs.cache.join(format!("{pool}.status.json")), body).unwrap();
+    }
+
+    fn hub(env: &HubEnv, setting: ModeSetting) -> HubState {
+        HubState::new(setting, env.dirs.clone(), Box::new(Offline))
+    }
+
+    /// Writes seat caches `acc1` and `other` and a Codex home, so the filter has work to do.
+    fn run(env: &HubEnv, setting: ModeSetting) -> UsageUpdate {
+        let dir = tempfile::tempdir().unwrap();
+        write(dir.path(), "acc1", &flat(42, NOW - 60));
+        write(dir.path(), "other", &flat(11, NOW - 60));
+        let home = tempfile::tempdir().unwrap();
+        codex_home(home.path(), 5);
+        poll_with(
+            &cache(dir.path()),
+            &[],
+            &codex(&[("acc1", home.path())]),
+            &hub(env, setting),
+            clock(),
+        )
+    }
+
+    #[test]
+    fn normal_mode_keeps_the_seat_accounts_and_has_no_pools() {
+        let env = hub_env();
+        pool_file(&env, "pool-a");
+        let update = run(&env, ModeSetting::Normal);
+        assert_eq!(update.mode, UsakiMode::Normal);
+        assert!(update.pools.is_empty());
+        assert_eq!(ids(&update), ["claude:acc1", "claude:other", "codex:acc1"]);
+    }
+
+    #[test]
+    fn hub_mode_drops_the_seat_accounts_and_fills_the_pools() {
+        let env = hub_env();
+        pool_file(&env, "pool-a");
+        let update = run(&env, ModeSetting::Hub);
+        assert_eq!(update.mode, UsakiMode::Hub);
+        assert_eq!(update.pools.len(), 1);
+        assert_eq!(update.pools[0].name, "pool-a");
+        assert_eq!(update.pools[0].seats.len(), 2);
+        assert_eq!(update.pools[0].total.seven_day_pct, Some(35.0));
+        // The Codex account with a seat name and the other Claude account stay.
+        assert_eq!(ids(&update), ["claude:other", "codex:acc1"]);
+    }
+
+    #[test]
+    fn auto_is_hub_when_a_pool_exists() {
+        let env = hub_env();
+        pool_file(&env, "pool-a");
+        let update = run(&env, ModeSetting::Auto);
+        assert_eq!(update.mode, UsakiMode::Hub);
+        assert_eq!(ids(&update), ["claude:other", "codex:acc1"]);
+    }
+
+    #[test]
+    fn auto_is_normal_when_no_pool_exists() {
+        let env = hub_env();
+        let update = run(&env, ModeSetting::Auto);
+        assert_eq!(update.mode, UsakiMode::Normal);
+        assert_eq!(ids(&update), ["claude:acc1", "claude:other", "codex:acc1"]);
+    }
+
+    #[test]
+    fn hub_mode_without_pools_is_hub_with_no_pools() {
+        let env = hub_env();
+        let update = run(&env, ModeSetting::Hub);
+        assert_eq!(update.mode, UsakiMode::Hub);
+        assert!(update.pools.is_empty());
+        assert_eq!(update.accounts.len(), 3);
+    }
+
+    #[test]
+    fn a_pool_without_data_keeps_the_seat_accounts() {
+        let env = hub_env();
+        let conf = &env.dirs.conf;
+        std::fs::write(conf.join("pool-b.status-url"), "https://hub.example/s").unwrap();
+        std::fs::write(conf.join("pool-b.url"), "https://hub.example").unwrap();
+        std::fs::write(conf.join("pool-b.key"), "synthetic").unwrap();
+        let update = run(&env, ModeSetting::Auto);
+        assert_eq!(update.mode, UsakiMode::Hub);
+        assert!(update.pools[0].stale);
+        assert!(update.pools[0].seats.is_empty());
+        assert_eq!(update.accounts.len(), 3);
     }
 }

@@ -24,8 +24,10 @@ The MVP is done. These parts exist:
 - The Codex session log provider, with provider marks on the cells
 - The rabbit layout: head and body cells, mosaic ears that fold, foot pads and the backplate
 - The card, the mouse and keyboard controls, and the saved position and screen
+- Hub mode: one cell per Claude hub pool, a pool block in the card with each seat, the pool
+  total and a run-out forecast. Normal mode stays as it was. See `docs/design/claude-hub.md`.
 
-Not built yet: `config.toml`, the settings window, the tray, start on login, onboarding (#14),
+Not built yet: `config.toml` keys other than `mode`, the settings window, the tray, start on login, onboarding (#14),
 Gemini, a Codex watcher through `codex app-server`, and the Windows build. Read
 `.claude/handoffs/` for the latest handoff.
 
@@ -41,6 +43,7 @@ Gemini, a Codex watcher through `codex app-server`, and the Windows build. Read
 | `docs/design/claude-cache.md` | The statusline cache file contract |
 | `docs/design/watcher-logins.md` | The Claude watcher logins |
 | `docs/design/codex-logs.md` | The Codex session log reader |
+| `docs/design/claude-hub.md` | Hub mode, the pool status source and the forecast |
 | `docs/design/mockup/*.dc.html` | The approved mockup of 2026-10-23. It is historical. |
 
 The code leads. The mockup shows the approved design of 2026-10-23. Since then the code has

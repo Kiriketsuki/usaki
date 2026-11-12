@@ -34,10 +34,68 @@ export interface AccountView {
   credits: Credits | null;
 }
 
+/** The mode of the widget. Hub mode shows one extra cell per Claude hub pool. */
+export type UsakiMode = 'normal' | 'hub';
+
+/** The state of a seat in a pool. */
+export type SeatState = 'open' | 'warm' | 'five_hour_full' | 'week_full' | 'unknown';
+
+export interface SeatView {
+  name: string;
+  priority: number | null;
+  state: SeatState;
+  unavailable: boolean;
+  /** True when the seat is the next seat of the pool. */
+  next: boolean;
+  extraUsageOpen: boolean;
+  spendGuardBlocked: boolean;
+  /** The count of live sessions, or null when the count is unknown. */
+  liveSessions: number | null;
+  /** The week percent left per hour to the week reset. */
+  score: number | null;
+  fiveHour: WindowView | null;
+  sevenDay: WindowView | null;
+}
+
+export interface PoolTotal {
+  fiveHourPct: number | null;
+  sevenDayPct: number | null;
+  /** The count of seats in state open or warm. */
+  openSeats: number;
+  seatCount: number;
+  /** The soonest seat week reset in the future, epoch ms. */
+  nextRefillAt: number | null;
+}
+
+export interface PoolForecast {
+  /** When the pool runs out of week capacity, or null when it lasts past the horizon. */
+  runsOutAt: number | null;
+  ratePctPerHour: number;
+  basis: 'recent' | 'week';
+}
+
+export interface PoolView {
+  name: string;
+  source: 'cache' | 'endpoint';
+  updatedAt: number;
+  fetchedAt: number;
+  stale: boolean;
+  error: string | null;
+  nextSeat: string | null;
+  extraUsageOpen: string[];
+  spendGuardBlocked: string[];
+  seats: SeatView[];
+  total: PoolTotal;
+  forecast: PoolForecast | null;
+}
+
+/** An old payload has no `mode` and no `pools`. The page reads that as normal mode. */
 export interface UsageUpdate {
   polledAt: number;
   accounts: AccountView[];
   error: string | null;
+  mode?: UsakiMode;
+  pools?: PoolView[];
 }
 
 /** One window of an account as it stands at `now`. */

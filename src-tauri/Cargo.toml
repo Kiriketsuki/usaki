@@ -16,6 +16,7 @@ serde_json.workspace = true
 dirs = "7"
 tauri = { version = "2", features = [] }
 tokio = { version = "1", features = ["time"] }
+toml.workspace = true
 usaki-core.workspace = true
 
 # Tauri v2 on Linux uses the gtk 0.18 crate. The app needs it to size the window
