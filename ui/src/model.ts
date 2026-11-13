@@ -1,6 +1,6 @@
 // Turns the backend data into what the bubble draws. It holds no DOM code.
 
-import { poolForId, viewAccounts } from './hub';
+import { seatForId, viewAccounts } from './hub';
 import { AUTO, type CellText, type HeadMode, NO_DATA, type Pin, READY, type WindowText, cellText, pickHead } from './centre';
 import { DEFAULT_THRESHOLDS, type Thresholds, tone } from './colour';
 import { type EarState, earState } from './ears';
@@ -33,8 +33,9 @@ export interface CellView {
   /** The id of the account in the cell, or null for the no data cell. */
   id: string | null;
   /**
-   * A ring is null when the account has no such window, such as the 5h ring of a 7d-only
-   * account. The cell then draws a dotted empty track.
+   * `five` is the ring. `seven` is the water fill inside the ring. The ring is null when the
+   * account has no 5h window, and the cell then draws a dotted empty track. The fill is null
+   * when the account has no 7d window, and the cell then draws no fill.
    */
   rings: { five: RingView | null; seven: RingView | null } | null;
   text: CellText;
@@ -75,9 +76,9 @@ export const CONTROLS_HINT =
 function ariaLabel(update: UsageUpdate | null, head: AccountView | null, mode: HeadMode, now: number): string {
   if (!head || mode === 'none') return 'AI usage. No fresh data.' + CONTROLS_HINT;
   const t = cellText(head, now);
-  const pool = poolForId(update, head.id);
-  const name = pool
-    ? 'Pool ' + pool.name + (pool.nextSeat ? ', next seat ' + pool.nextSeat : '')
+  const hub = seatForId(update, head.id);
+  const name = hub
+    ? 'Seat ' + hub.seat.name + ' in pool ' + hub.pool.name
     : PROVIDER_LABEL[head.provider] + ' ' + t.name;
   const who = (mode === 'pinned' ? 'Pinned: ' : 'Next reset: ') + name;
   if (noData(head)) return 'AI usage. ' + who + '. No data.' + CONTROLS_HINT;
@@ -99,8 +100,8 @@ export function headFirst(accounts: readonly AccountView[], head: AccountView | 
 
 /**
  * Returns the bubble at `now`: one hex cell per account, laid out as a rabbit. The head is
- * the pinned account, or else the auto account, and it carries the ears. Each cell has a 7d
- * ring outside and a 5h ring inside it.
+ * the pinned account, or else the auto account, and it carries the ears. Each cell has a 5h
+ * ring, and the 7d use is a water fill inside the ring. In hub mode each seat is a cell.
  */
 export function bubbleView(
   update: UsageUpdate | null,

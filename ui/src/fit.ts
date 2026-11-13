@@ -15,8 +15,13 @@ import { APOTHEM, FIVE_RING } from './geometry';
 const CHAR_EM = 0.6;
 /** The clear space between the text and the inner edge of the 5h ring, in px. */
 export const TEXT_MARGIN = 1;
+/**
+ * The text keeps the room that the old inner 5h ring left, 4.5 px inside the ring. The text
+ * block stays the same size, and the water fill runs behind it.
+ */
+const TEXT_RING_INSET = 4.5;
 /** The text must stay inside a hexagon of this apothem. */
-export const TEXT_LIMIT = FIVE_RING.inner - TEXT_MARGIN;
+export const TEXT_LIMIT = FIVE_RING.inner - TEXT_RING_INSET - TEXT_MARGIN;
 /** The x of the middle of each column, left of and right of the cell centre, in px. */
 export const COL_X = 14.5;
 /** The gap between two rows, in px. */

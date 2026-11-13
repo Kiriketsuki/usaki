@@ -26,9 +26,11 @@ the [Decisions log](#decisions-log) for the changes since then.
   Five add a cell under the chest. Six put the head between two shoulders, with a cell under the head and two haunches below.
   Six accounts then stay shorter than five. More cells extend that body as rows of three. Cells that touch keep a 3 px gap.
   Chrysaki bans rounded corners. The user dropped the circle option.
-- **Rings:** each cell has two rings of the same 3 px stroke (scaled with the cell). The 7d ring is outside and the 5h ring
-  inside it. Each ring grows clockwise from 12 o'clock, where a thin notch marks the start. The notch also breaks a full ring,
-  so a 100% ring never reads as the cell outline.
+- **Rings:** each cell has one 5h ring with a 3 px stroke (scaled with the cell). It grows clockwise from 12 o'clock, where a
+  thin notch marks the start. The notch also breaks a full ring, so a 100% ring never reads as the cell outline. The 7d use is a
+  water fill inside the ring. A flat-top hex clip holds the fill, and it rises from the bottom to the 7d percent of the interior
+  height. The fill uses the usage tone at 30% opacity, with a 1 px surface line. It has no wave and no animation.
+- **Hub mode cells:** each seat of each pool is one cell. A pool has no cell. The card has one block for each pool.
 - **Foot pads:** small decor hexes with no ring and no text (issue #21). A head alone gets two
   front paws under it. A body gets a hind foot pad beside the bottom of each outermost cell. A head between two feet also gets
   two front paws under it. A pad keeps at least 3 px from every cell, so it never covers a ring. A pad hex has a 7.5 px corner
@@ -148,7 +150,7 @@ ui/src/ (Vite + vanilla TS, no framework, to keep the webview light)
   main.ts            wiring: events, resize, pointer and key handlers
   model.ts           turns the backend data into the bubble view
   layout.ts          the rabbit layout and the window size for the cell count
-  geometry.ts        hex paths, cell sizes, the ring pair, the notch and the empty track
+  geometry.ts        hex paths, cell sizes, the 5h ring, the 7d fill level, the notch and the empty track
   ears.ts            the ear hexes for each fold state, filled from the faceted ear polygons
   pads.ts            the foot pad hexes at the base of the rabbit
   plate.ts           the backplate: the union of padded copies of every hex
@@ -206,3 +208,4 @@ Onboarding for install and first run is issue #14.
 - **2026-10-26:** Codex session logs became the Codex source, and provider marks name each provider (issue #19).
 - **2026-10-26:** rabbit layout D: a front-view rabbit with a head cell, body cells, mosaic ears, foot pads and a backplate (issue #21).
 - **2026-10-26:** the work on issue #19 removed the bubble drop shadow. The window edge cut it into a faint rectangle.
+- **2026-11-13:** each cell has one 5h ring and a 7d water fill in place of the ring pair. In hub mode each seat is a cell and a pool has none (issue #28).

@@ -4,7 +4,7 @@
 import { type Head, type Pin, pickHead } from './centre';
 import { BLONDE, DEFAULT_THRESHOLDS, EMERALD, RUBY, type Thresholds, tone } from './colour';
 import { ageText, clockAt, minutesUntil, spacedLeft } from './countdown';
-import { poolAccount, poolForId, viewAccounts } from './hub';
+import { HUB_PREFIX, isHub, poolAccount, poolsOf, viewAccounts } from './hub';
 import { PROVIDER_COLOUR } from './marks';
 import { type MoonView, NEW_MOON, moonView } from './moon';
 import {
@@ -81,7 +81,7 @@ export interface AccountRow {
   credits: string | null;
   /** The block height in px. */
   height: number;
-  /** The pool block of a hub pool cell. It replaces the account lines. Absent for an account. */
+  /** The pool block of a hub pool row. It replaces the account lines. Absent for an account. */
   pool?: PoolBlock;
 }
 
@@ -268,9 +268,50 @@ export function updatedText(accounts: readonly AccountView[], now: number): stri
   return age ? 'updated ' + age + ' ago' : 'updated now';
 }
 
+function poolRow(pool: PoolView, now: number, thresholds: Thresholds, timeZone?: string): AccountRow {
+  const cell = poolAccount(pool, now);
+  const block = poolBlock(pool, now, thresholds, timeZone);
+  return {
+    id: HUB_PREFIX + pool.name,
+    name: pool.name,
+    provider: 'claude',
+    colour: PROVIDER_COLOUR.claude,
+    tag: block.next,
+    stale: staleText(cell, now),
+    windows: block.windows,
+    noData: false,
+    credits: null,
+    height: blockHeight(poolLines(block)),
+    pool: block
+  };
+}
+
+function accountRow(a: AccountView, head: Head, now: number, thresholds: Thresholds, timeZone?: string): AccountRow {
+  const empty = noData(a);
+  const minutes = empty ? [] : weekOnly(a) ? [SEVEN_DAY_MINUTES] : [FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES];
+  const windows = minutes.map((m) => windowRow(a, m, now, thresholds, timeZone));
+  const credits = creditsText(a.credits);
+  // An account with no window has one `no data` line in place of the window rows.
+  const lines = (empty ? 1 : windows.length) + (credits == null ? 0 : 1);
+  return {
+    id: a.id,
+    name: a.name,
+    provider: a.provider,
+    colour: PROVIDER_COLOUR[a.provider],
+    tag: a === head.account ? headTag(head) : null,
+    stale: staleText(a, now),
+    windows,
+    noData: empty,
+    credits,
+    height: blockHeight(lines)
+  };
+}
+
 /**
  * Returns the card at `now`. The rows keep the account order, so a row does not jump when
- * the head changes. The head row carries a tag that says how the head was chosen.
+ * the head changes. The head row carries a tag that says how the head was chosen. In hub mode
+ * each pool has one block and the seat cells have none. The pool blocks follow the direct
+ * Claude accounts and come before the other providers.
  */
 export function cardView(
   update: UsageUpdate | null,
@@ -281,42 +322,12 @@ export function cardView(
 ): CardView {
   const accounts = viewAccounts(update);
   const head = pickHead(accounts, pin, now);
-  const rows = accounts.map((a): AccountRow => {
-    const pool = poolForId(update, a.id);
-    if (pool) {
-      const block = poolBlock(pool, now, thresholds, timeZone);
-      return {
-        id: a.id,
-        name: a.name,
-        provider: a.provider,
-        colour: PROVIDER_COLOUR[a.provider],
-        tag: block.next,
-        stale: staleText(a, now),
-        windows: block.windows,
-        noData: false,
-        credits: null,
-        height: blockHeight(poolLines(block)),
-        pool: block
-      };
-    }
-    const empty = noData(a);
-    const minutes = empty ? [] : weekOnly(a) ? [SEVEN_DAY_MINUTES] : [FIVE_HOUR_MINUTES, SEVEN_DAY_MINUTES];
-    const windows = minutes.map((m) => windowRow(a, m, now, thresholds, timeZone));
-    const credits = creditsText(a.credits);
-    // An account with no window has one `no data` line in place of the window rows.
-    const lines = (empty ? 1 : windows.length) + (credits == null ? 0 : 1);
-    return {
-      id: a.id,
-      name: a.name,
-      provider: a.provider,
-      colour: PROVIDER_COLOUR[a.provider],
-      tag: a === head.account ? headTag(head) : null,
-      stale: staleText(a, now),
-      windows,
-      noData: empty,
-      credits,
-      height: blockHeight(lines)
-    };
-  });
+  const direct = (update?.accounts ?? []).map((a) => accountRow(a, head, now, thresholds, timeZone));
+  let rows = direct;
+  if (isHub(update)) {
+    const pools = poolsOf(update).map((p) => poolRow(p, now, thresholds, timeZone));
+    const claude = direct.filter((r) => r.provider === 'claude');
+    rows = [...claude, ...pools, ...direct.filter((r) => r.provider !== 'claude')];
+  }
   return { updated: updatedText(accounts, now), rows, ...cardSize(rows.map((r) => r.height)) };
 }

@@ -133,3 +133,27 @@ describe('bubbleView', () => {
     expect(view.cells[0].id).toBe('acc2');
   });
 });
+
+describe('cell ring and fill', () => {
+  it('gives each cell one 5h ring and a 7d fill value, with no second ring', () => {
+    const cell = bubbleView({ polledAt: NOW, accounts: [account('acc1', 40, 100)], error: null }, NOW).cells[0];
+    expect(Object.keys(cell.rings ?? {}).sort()).toEqual(['five', 'seven']);
+    expect(cell.rings?.five?.pct).toBeDefined();
+    expect(cell.rings?.seven?.pct).toBeDefined();
+  });
+
+  it('gives a 7d-only account an empty ring and a fill', () => {
+    const only = { ...account('acc1', 40, 100), windows: account('acc1', 40, 100).windows.filter((w) => w.minutes === 10080) };
+    const cell = bubbleView({ polledAt: NOW, accounts: [only], error: null }, NOW).cells[0];
+    expect(cell.rings?.five).toBeNull();
+    expect(cell.rings?.seven).not.toBeNull();
+  });
+
+  it('gives an account with no 7d window no fill', () => {
+    const base = account('acc1', 40, 100);
+    const five = { ...base, windows: base.windows.filter((w) => w.minutes === 300) };
+    const cell = bubbleView({ polledAt: NOW, accounts: [five], error: null }, NOW).cells[0];
+    expect(cell.rings?.seven).toBeNull();
+    expect(cell.rings?.five).not.toBeNull();
+  });
+});

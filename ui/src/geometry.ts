@@ -1,5 +1,5 @@
 // Hex and ring geometry. hexPath and the ring dash come from docs/design/mockup/Bubble.dc.html.
-// Issue #11 replaces the one big hex with a cluster of small hex cells, one per account.
+// A cell has one 5h ring and a 7d water fill inside it.
 
 /** The ratio of the apothem (centre to edge) to the radius (centre to corner) of a hexagon. */
 export const APOTHEM = 0.866;
@@ -57,34 +57,49 @@ export interface RingGeometry {
   inner: number;
 }
 
-/** The clear space between the cell outline and the outer ring of a body cell, in px. */
+/** The clear space between the cell outline and the ring of a body cell, in px. */
 const RING_INSET = 1.5;
-/** Both rings have the same stroke, so neither reads as the cell outline. The gap is in px too. */
+/** The stroke of the ring, in px. */
 export const RING_SW = 3;
-export const RING_GAP = 1.5;
 
 function ring(outer: number, sw: number): RingGeometry {
   return { r: (outer - sw / 2) / APOTHEM, sw, outer, inner: outer - sw };
 }
 
-/** The two rings of a cell of radius `r`. The 7d ring is the outer ring and the 5h ring the inner ring. */
-export interface CellRings {
-  seven: RingGeometry;
-  five: RingGeometry;
+/**
+ * Returns the 5h ring of a cell of radius `r`. Every size of cell is the body cell design
+ * scaled by r / CELL_R, so the stroke and the inset scale with it. The 7d water fill sits
+ * inside the inner edge of this ring.
+ */
+export function cellRing(r: number): RingGeometry {
+  const k = r / CELL_R;
+  return ring(r * APOTHEM - RING_INSET * k, RING_SW * k);
 }
+
+/** The 5h ring of a body cell. */
+export const FIVE_RING = cellRing(CELL_R);
+
+/** The opacity of the 7d water fill body. It stays low, so the text reads over a full fill. */
+export const FILL_OPACITY = 0.3;
+/** The opacity of the 1 px surface line of the water fill. */
+export const FILL_LINE_OPACITY = 0.9;
 
 /**
- * Returns the rings of a cell of radius `r`. Every size of cell is the body cell design
- * scaled by r / CELL_R, so the strokes, the gap and the inset scale with it.
+ * Returns the water fill of a cell of radius `r` centred at `cy`: the interior of the ring
+ * is a flat-top hex with apothem `ring.inner`. The fill grows from the bottom edge up to `pct`
+ * of the interior height. It clamps pct to 0..100. `y` is the surface and `height` the fill
+ * height, both in px. A rect at (x, y) of that height, clipped to the interior hex, is the fill.
  */
-export function cellRings(r: number): CellRings {
-  const k = r / CELL_R;
-  const seven = ring(r * APOTHEM - RING_INSET * k, RING_SW * k);
-  return { seven, five: ring(seven.inner - RING_GAP * k, RING_SW * k) };
+export function fillLevel(ring: RingGeometry, pct: number, cy: number): { y: number; height: number } {
+  const clamped = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
+  const height = (2 * ring.inner * clamped) / 100;
+  return { y: cy + ring.inner - height, height };
 }
 
-/** The rings of a body cell. */
-export const { seven: SEVEN_RING, five: FIVE_RING } = cellRings(CELL_R);
+/** The radius, corner to corner, of the interior hex of the ring, where the fill is clipped. */
+export function interiorRadius(ring: RingGeometry): number {
+  return ring.inner / APOTHEM;
+}
 
 /** The width of the start notch of a body cell ring, in px. */
 export const NOTCH_W = 1.5;
