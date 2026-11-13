@@ -6,9 +6,11 @@ import {
   FIVE_RING,
   HEAD_R,
   NOTCH_W,
-  SEVEN_RING,
   TRACK_DOT_SPACING,
-  cellRings,
+  FILL_OPACITY,
+  cellRing,
+  fillLevel,
+  interiorRadius,
   hexCorners,
   hexPath,
   ringDash,
@@ -47,45 +49,68 @@ describe('cell rings', () => {
     expect(2 * CELL_APOTHEM).toBeCloseTo(86.6, 1);
   });
 
-  it('puts the 7d ring outside the 5h ring, both 3 px wide, with a 1.5 px gap', () => {
-    expect(SEVEN_RING.sw).toBe(3);
+  it('draws one 3 px ring, 1.5 px inside the cell outline', () => {
     expect(FIVE_RING.sw).toBe(3);
-    expect(SEVEN_RING.outer).toBeGreaterThan(FIVE_RING.outer);
-    expect(SEVEN_RING.inner - FIVE_RING.outer).toBeCloseTo(1.5, 9);
+    expect(CELL_APOTHEM - FIVE_RING.outer).toBeCloseTo(1.5, 9);
+    expect(FIVE_RING.outer - FIVE_RING.inner).toBeCloseTo(3, 9);
   });
 
-  it('keeps the 7d ring 1.5 px inside the cell outline', () => {
-    expect(CELL_APOTHEM - SEVEN_RING.outer).toBeCloseTo(1.5, 9);
+  it('draws the ring path on the middle of its stroke', () => {
+    expect(FIVE_RING.r * APOTHEM).toBeCloseTo((FIVE_RING.outer + FIVE_RING.inner) / 2, 9);
   });
 
-  it('draws each ring path on the middle of its stroke', () => {
-    for (const g of [FIVE_RING, SEVEN_RING]) {
-      expect(g.r * APOTHEM).toBeCloseTo((g.outer + g.inner) / 2, 9);
-    }
+  it('scales the ring with the cell', () => {
+    expect(cellRing(HEAD_R).sw).toBeCloseTo(3 * (HEAD_R / CELL_R), 9);
+  });
+});
+
+describe('fillLevel', () => {
+  const g = FIVE_RING;
+  const height = (pct: number) => fillLevel(g, pct, 100).height;
+
+  it('fills nothing at 0 and the whole interior at 100', () => {
+    expect(height(0)).toBe(0);
+    expect(height(100)).toBeCloseTo(2 * g.inner, 9);
+  });
+
+  it('fills half the interior height at 50, from the bottom up', () => {
+    expect(height(50)).toBeCloseTo(g.inner, 9);
+    expect(fillLevel(g, 50, 100).y).toBeCloseTo(100, 9);
+  });
+
+  it('clamps a percent over 100 and under 0', () => {
+    expect(height(130)).toBeCloseTo(2 * g.inner, 9);
+    expect(fillLevel(g, 130, 100).y).toBeCloseTo(100 - g.inner, 9);
+    expect(height(-5)).toBe(0);
+  });
+
+  it('keeps the interior hex inside the ring and the fill body at a low opacity', () => {
+    expect(interiorRadius(g) * APOTHEM).toBeCloseTo(g.inner, 9);
+    expect(FILL_OPACITY).toBeGreaterThanOrEqual(0.28);
+    expect(FILL_OPACITY).toBeLessThanOrEqual(0.35);
   });
 });
 
 describe('ringNotch', () => {
   const parse = (s: string) => s.split(' ').map((p) => p.split(',').map(Number));
 
-  it('cuts across the whole 7d ring at 12 o clock, with 0.5 px to spare on each edge', () => {
-    const pts = parse(ringNotch(SEVEN_RING, CELL_R, 100, 200));
+  it('cuts across the whole ring at 12 o clock, with 0.5 px to spare on each edge', () => {
+    const pts = parse(ringNotch(FIVE_RING, CELL_R, 100, 200));
     const xs = pts.map(([x]) => x);
     const ys = pts.map(([, y]) => y);
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(NOTCH_W, 9);
     expect((Math.max(...xs) + Math.min(...xs)) / 2).toBeCloseTo(100, 9);
-    expect(Math.min(...ys)).toBeCloseTo(200 - SEVEN_RING.outer - 0.5, 9);
-    expect(Math.max(...ys)).toBeCloseTo(200 - SEVEN_RING.inner + 0.5, 9);
+    expect(Math.min(...ys)).toBeCloseTo(200 - FIVE_RING.outer - 0.5, 9);
+    expect(Math.max(...ys)).toBeCloseTo(200 - FIVE_RING.inner + 0.5, 9);
   });
 
-  it('stays inside the cell and clear of the 5h ring', () => {
-    const ys = parse(ringNotch(SEVEN_RING, CELL_R, 0, 0)).map(([, y]) => y);
+  it('stays inside the cell', () => {
+    const ys = parse(ringNotch(FIVE_RING, CELL_R, 0, 0)).map(([, y]) => y);
     expect(-Math.min(...ys)).toBeLessThan(CELL_APOTHEM);
-    expect(-Math.max(...ys)).toBeGreaterThan(FIVE_RING.outer);
   });
 
   it('grows with the cell', () => {
-    const big = cellRings(HEAD_R).seven;
+    const big = cellRing(HEAD_R);
     const xs = parse(ringNotch(big, HEAD_R, 0, 0)).map(([x]) => x);
     expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo((NOTCH_W * HEAD_R) / CELL_R, 9);
   });
@@ -100,7 +125,7 @@ describe('ringDash', () => {
 });
 
 describe('trackDots', () => {
-  const { five } = cellRings(CELL_R);
+  const five = cellRing(CELL_R);
   const dots = trackDots(five.r, 100, 100, TRACK_DOT_SPACING);
   const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -138,7 +163,7 @@ describe('trackDots', () => {
   });
 
   it('scales with the cell, so the head track has the same count', () => {
-    const head = cellRings(HEAD_R).five;
+    const head = cellRing(HEAD_R);
     expect(trackDots(head.r, 0, 0, (TRACK_DOT_SPACING * HEAD_R) / CELL_R)).toHaveLength(dots.length);
   });
 });

@@ -8,9 +8,9 @@ used and the reset time.
 
 One account is one flat-top hex cell, and the cells form a front-view rabbit. The head cell is
 the biggest and carries the ears. It shows the account whose 5h window resets next. The other
-accounts are smaller body cells. Each cell has a 7d ring outside a 5h ring. The cell shows both
+accounts are smaller body cells. Each cell has one 5h ring and a 7d water fill inside it. The cell shows both
 percents, the name with a provider mark and both countdowns, 5h on the left and 7d on the right.
-A glass backplate joins the cells, the ears and the foot pads. A click opens the bubble into a
+A glass backplate joins the cells, the ears and the foot pads. In hub mode each seat of a pool is one cell, and a pool has no cell. A click opens the bubble into a
 card with the full detail.
 
 The name comes from usagi, Japanese for rabbit. The app carries a rabbit identity throughout.
@@ -37,7 +37,7 @@ Gemini, a Codex watcher through `codex app-server`, and the Windows build. Read
 |---|---|
 | `docs/design/plan.md` | Current design, decisions log and milestones |
 | `ui/src/layout.ts` | The rabbit layout and the window size for each cell count |
-| `ui/src/geometry.ts` | Hex paths, cell sizes, the ring pair and the empty track |
+| `ui/src/geometry.ts` | Hex paths, cell sizes, the 5h ring, the 7d fill and the empty track |
 | `ui/src/ears.ts` | The mosaic ears and the fold rule |
 | `ui/src/plate.ts` | The backplate |
 | `docs/design/claude-cache.md` | The statusline cache file contract |
@@ -47,7 +47,7 @@ Gemini, a Codex watcher through `codex app-server`, and the Windows build. Read
 | `docs/design/mockup/*.dc.html` | The approved mockup of 2026-10-23. It is historical. |
 
 The code leads. The mockup shows the approved design of 2026-10-23. Since then the code has
-added tiled cells, ring pairs, the rabbit layout and the provider marks. Change the code and
+added tiled cells, the 5h ring with a 7d fill, the rabbit layout and the provider marks. Change the code and
 `plan.md`, not the mockup.
 
 ## Stack

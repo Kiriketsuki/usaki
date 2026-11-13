@@ -9,7 +9,11 @@ import {
   CELL_R,
   type RingGeometry,
   TRACK_DOT_SPACING,
-  cellRings,
+  FILL_LINE_OPACITY,
+  FILL_OPACITY,
+  cellRing,
+  fillLevel,
+  interiorRadius,
   hexCorners,
   hexPath,
   ringDash,
@@ -129,15 +133,34 @@ function emptyRingNode(c: CellView, g: RingGeometry): SVGElement {
   return el;
 }
 
+let fillSeq = 0;
+
+// The 7d use is a water fill inside the ring: the interior hex clips a rect that grows from
+// the bottom edge. The body is the tone at a low opacity and a 1 px line marks the surface.
+function fillNodes(c: CellView, g: RingGeometry, seven: RingView): SVGElement[] {
+  const { y, height } = fillLevel(g, seven.pct, c.y);
+  if (height <= 0) return [];
+  const id = 'fill-' + fillSeq++;
+  const half = g.inner;
+  const x = c.x - interiorRadius(g);
+  const w = 2 * interiorRadius(g);
+  const clip = svg('clipPath', { id });
+  clip.append(svg('path', { d: hexPath(interiorRadius(g), c.x, c.y) }));
+  const body = svg('rect', { x, y, width: w, height, fill: seven.color, 'fill-opacity': FILL_OPACITY, 'clip-path': 'url(#' + id + ')' });
+  const lineY = Math.min(c.y + half - 0.5, Math.max(c.y - half + 0.5, y));
+  const line = svg('rect', { x, y: lineY - 0.5, width: w, height: 1, fill: seven.color, 'fill-opacity': FILL_LINE_OPACITY, 'clip-path': 'url(#' + id + ')' });
+  return [clip, body, line];
+}
+
 function cellNode(c: CellView): SVGElement {
   const g = svg('g', { opacity: c.dim ? STALE_RINGS : 1 });
   g.append(svg('path', { d: hexPath(c.r, c.x, c.y), fill: 'none', stroke: EDGE, 'stroke-width': 1 }));
-  const rings = cellRings(c.r);
+  const ring = cellRing(c.r);
   if (c.rings) {
     const { five, seven } = c.rings;
     g.append(
-      ...(seven ? ringNodes(c, rings.seven, seven) : [emptyRingNode(c, rings.seven)]),
-      ...(five ? ringNodes(c, rings.five, five) : [emptyRingNode(c, rings.five)])
+      ...(seven ? fillNodes(c, ring, seven) : []),
+      ...(five ? ringNodes(c, ring, five) : [emptyRingNode(c, ring)])
     );
   }
   return g;

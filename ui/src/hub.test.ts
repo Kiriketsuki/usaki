@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cardView, forecastText, poolBlock } from './card';
 import { bubbleView } from './model';
 import { AUTO } from './centre';
-import { poolAccount, viewAccounts } from './hub';
+import { poolAccount, seatAccount, seatForId, viewAccounts } from './hub';
 import { MIN, NOW, account, codexAccount } from './test-fixtures';
 import type { PoolView, SeatView, UsageUpdate } from './usage';
 
@@ -76,8 +76,15 @@ describe('poolAccount', () => {
 });
 
 describe('viewAccounts', () => {
-  it('puts the pool cells after the Claude accounts and before Codex', () => {
-    expect(viewAccounts(hubUpdate()).map((a) => a.id)).toEqual(['acc9', 'hub:pool-a', 'codex:cx1']);
+  it('puts the seat cells after the Claude accounts and before Codex, in pool seat order', () => {
+    expect(viewAccounts(hubUpdate()).map((a) => a.id)).toEqual(['acc9', 'hub:pool-a:acc1', 'hub:pool-a:acc2', 'codex:cx1']);
+    const two = hubUpdate({ pools: [pool({ name: 'pool-b' }), pool()] });
+    expect(viewAccounts(two).map((a) => a.id).slice(1, 5)).toEqual([
+      'hub:pool-b:acc1',
+      'hub:pool-b:acc2',
+      'hub:pool-a:acc1',
+      'hub:pool-a:acc2'
+    ]);
   });
 
   it('returns the accounts unchanged in normal mode or with missing fields', () => {
@@ -89,14 +96,44 @@ describe('viewAccounts', () => {
 });
 
 describe('hub bubble', () => {
-  it('draws one extra cell per pool and names the pool in the label', () => {
-    const view = bubbleView(hubUpdate({ accounts: [] }), NOW, 'hub:pool-a');
-    expect(view.cells.map((c) => c.id)).toEqual(['hub:pool-a']);
-    expect(view.label).toContain('Pool pool-a, next seat acc1');
+  it('draws one cell per seat, no pool cell, and names the seat and pool in the label', () => {
+    const view = bubbleView(hubUpdate({ accounts: [] }), NOW, 'hub:pool-a:acc2');
+    expect(view.cells.map((c) => c.id)).toEqual(['hub:pool-a:acc2', 'hub:pool-a:acc1']);
+    expect(view.cells.some((c) => c.id === 'hub:pool-a')).toBe(false);
+    expect(view.label).toContain('Seat acc2 in pool pool-a');
+    expect(view.label).toContain('5 hour window: 90% used');
   });
 
-  it('counts the pool cell in the layout', () => {
-    expect(bubbleView(hubUpdate(), NOW).cells).toHaveLength(3);
+  it('counts the seat cells in the layout', () => {
+    expect(bubbleView(hubUpdate(), NOW).cells).toHaveLength(4);
+  });
+
+  it('gives a seat cell one 5h ring and a 7d fill from the seat windows', () => {
+    const cell = bubbleView(hubUpdate({ accounts: [] }), NOW, 'hub:pool-a:acc1').cells[0];
+    expect(cell.rings?.five?.pct).toBe(6);
+    expect(cell.rings?.seven?.pct).toBe(51);
+  });
+});
+
+describe('seatAccount', () => {
+  it('builds a Claude account from the seat windows and the pool stale flag', () => {
+    const p = pool({ stale: true });
+    const a = seatAccount(p, p.seats[0]);
+    expect(a).toMatchObject({ id: 'hub:pool-a:acc1', provider: 'claude', name: 'acc1', stale: true });
+    expect(a.windows.map((w) => [w.minutes, w.usedPct])).toEqual([[300, 6], [10080, 51]]);
+  });
+
+  it('skips a missing window', () => {
+    const p = pool({ seats: [seat('acc1', { fiveHour: null })] });
+    expect(seatAccount(p, p.seats[0]).windows.map((w) => w.minutes)).toEqual([10080]);
+  });
+
+  it('finds the pool and seat of an id', () => {
+    const found = seatForId(hubUpdate(), 'hub:pool-a:acc2');
+    expect(found?.pool.name).toBe('pool-a');
+    expect(found?.seat.name).toBe('acc2');
+    expect(seatForId(hubUpdate(), 'acc9')).toBeNull();
+    expect(seatForId(hubUpdate(), 'hub:pool-a')).toBeNull();
   });
 });
 
@@ -139,6 +176,13 @@ describe('poolBlock', () => {
 });
 
 describe('hub card', () => {
+  it('shows one block per pool and the direct accounts, and none for a seat cell', () => {
+    const two = hubUpdate({ pools: [pool({ name: 'pool-b' }), pool()] });
+    const ids = cardView(two, NOW, AUTO, undefined, UTC).rows.map((r) => r.id);
+    expect(ids).toEqual(['acc9', 'hub:pool-b', 'hub:pool-a', 'codex:cx1']);
+    expect(ids.some((id) => id.split(':').length > 2)).toBe(false);
+  });
+
   it('gives a pool row a pool block and the height of its lines', () => {
     const view = cardView(hubUpdate(), NOW, AUTO, undefined, UTC);
     const row = view.rows.find((r) => r.id === 'hub:pool-a');
